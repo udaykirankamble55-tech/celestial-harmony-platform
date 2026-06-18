@@ -8,9 +8,7 @@ import Image from "next/image";
 gsap.registerPlugin(ScrollTrigger);
 
 const STATS = [
-  // FIX: Merged Google (73) and Justdial (239) tracking footprints into a single 312 total ratings block
   { num: "4.9", suf: "★", label: "Google & Justdial", sub: "312 Total Ratings" },
-  // FIX: Recalibrated longevity timeline to 11+ years running to align with the 2015 establishment date
   { num: "11",  suf: "+", label: "Years Running",  sub: "Est. 2015"   },
   { num: "100", suf: "%", label: "Trinity Merit",  sub: "Pass Record" },
   { num: "5",   suf: "",  label: "Instruments",    sub: "Including Vocals" },
@@ -49,20 +47,30 @@ function MLine({ children, delay = 0, style, className = "" }: { children: React
 function Counter({ target, suffix }: { target: number | string; suffix: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
+  
   useEffect(() => {
     if (!inView || !ref.current) return;
-    if (typeof target === "number") {
-      gsap.fromTo({ v: 0 }, { v: target }, {
+    const numVal = Number(target);
+    
+    if (!isNaN(numVal)) {
+      // FIX: Dynamically detect floating point decimal configurations to halt integer integer rounding mutations
+      const isDecimal = numVal % 1 !== 0;
+      
+      gsap.fromTo({ v: 0 }, { v: numVal }, {
         duration: 1.9, ease: "power2.out",
         onUpdate: function (this: gsap.core.Tween) {
-          if (ref.current) ref.current.textContent = Math.round((this.targets()[0] as { v: number }).v) + suffix;
+          if (ref.current) {
+            const currentVal = (this.targets()[0] as { v: number }).v;
+            ref.current.textContent = (isDecimal ? currentVal.toFixed(1) : Math.round(currentVal).toString()) + suffix;
+          }
         }
       });
     } else {
       ref.current.textContent = target + suffix;
     }
   }, [inView, target, suffix]);
-  return <span ref={ref}>{typeof target === "number" ? "0" + suffix : target + suffix}</span>;
+  
+  return <span ref={ref}>{target + suffix}</span>;
 }
 
 function TiltCard({ children, style, className = "" , maxTilt = 12, maxMove = 10 }: { children: React.ReactNode; style?: React.CSSProperties; className?: string; maxTilt?: number; maxMove?: number; }) {
@@ -160,9 +168,8 @@ function AboutUspStripCard({ item, i, activeIndex, setActiveIndex }: { item: typ
       className={`contact-premium-card ${isHovered ? "is-hovering" : ""}`}
       style={{
         padding: "1.5px", display: "flex", flexDirection: "column", borderRadius: "4px", position: "relative",
-        flex: isHovered ? 1.4 : 1, 
         zIndex: isHovered ? 10 : 1,
-        transition: "flex 0.5s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.4s ease"
+        transition: "box-shadow 0.4s ease"
       }}
     >
       <div className="contact-beam-spin"></div>
@@ -204,7 +211,8 @@ function FounderCard() {
       <div className="contact-beam-spin"></div>
       
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.1fr", alignContent: "stretch", overflow: "hidden", borderRadius: "3px", background: "#0d0b09", width: "100%" }} className="founder-full-card">
-        <div style={{ position: "relative", height: "100%", width: "100%", overflow: "hidden", zIndex: 1 }}>
+        {/* FIX: Handled dynamic tracking boundaries to enforce structural min-height on layout stacks */}
+        <div className="founder-card-image-wrapper" style={{ position: "relative", width: "100%", overflow: "hidden", zIndex: 1 }}>
           <Image src="/founder.jpeg" alt="Johnson Medi — Founder" fill priority
             style={{ objectFit: "cover", transform: imgHov ? "scale(1.04)" : "scale(1)", transition: "transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), filter 0.8s", filter: imgHov ? "brightness(1) contrast(1.05)" : "brightness(0.65) contrast(1.08)" }} />
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(200,150,12,0.15), transparent)", opacity: imgHov ? 1 : 0, transition: "opacity .5s", pointerEvents: "none" }} />
@@ -227,10 +235,10 @@ function FounderCard() {
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14.5px", color: "rgba(245,240,232,0.65)", lineHeight: 1.9, marginBottom: 32, textAlign: "justify", textJustify: "inter-word" }}>
             Academy founder with 10+ years of teaching experience. A Trinity College London certified educator who has guided hundreds of students from age 5 to working professionals to Grade certifications in guitar, keyboard, and violin. His philosophy is simple: teach it right, teach it once.
           </p>
-          <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 24, gap: "12px" }}>
             {[["10+", "Years Teaching"], ["100%", "Trinity Pass Rate"], ["Grade 1 to 8", "All Instruments"]].map(([v, l]) => (
               <div key={l}>
-                <p style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(1.4rem,2vw,1.8rem)", color: "#C8960C", lineHeight: 1 }}>{v}</p>
+                <p style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(1.2rem,2vw,1.8rem)", color: "#C8960C", lineHeight: 1 }}>{v}</p>
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9.5, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(245,240,232,0.4)", marginTop: 8 }}>{l}</p>
               </div>
             ))}
@@ -270,9 +278,28 @@ export default function AboutSection() {
         .about-cta-beam:hover .about-cta-inner { background-position: 0 0; }
         .about-cta-beam:hover .about-cta-text { color: #080808 !important; font-weight: 700; }
         
+        /* FIX: Inject complete CSS responsive breakpoint definitions for grids and layout images */
+        .stats-responsive-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 64px; }
+        .founder-card-image-wrapper { min-height: auto; height: 100%; }
+
         @keyframes spinGlowAbout { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
-        @media (max-width: 1024px) { .location-strip-grid { grid-template-columns: auto 1fr !important; gap: 20px !important; } .location-strip-grid div:last-child { grid-column: span 2 !important; justify-content: flex-start !important; margin-top: 10px; } }
-        @media (max-width: 768px) { .about-main-grid { grid-template-columns: 1fr !important; } .founder-full-card { grid-template-columns: 1fr !important; } }
+
+        @media (max-width: 1024px) { 
+          .stats-responsive-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 20px !important; }
+          .location-strip-grid { grid-template-columns: auto 1fr !important; gap: 20px !important; } 
+          .location-strip-grid div:last-child { grid-column: span 2 !important; justify-content: flex-start !important; margin-top: 10px; } 
+        }
+        @media (max-width: 768px) { 
+          .about-main-grid { grid-template-columns: 1fr !important; gap: 40px !important; } 
+          .founder-full-card { grid-template-columns: 1fr !important; } 
+          .founder-card-image-wrapper { min-height: 380px !important; }
+        }
+        @media (max-width: 520px) {
+          .stats-responsive-grid { grid-template-columns: 1fr !important; }
+          .location-strip-grid { grid-template-columns: 1fr !important; }
+          .location-strip-grid div:last-child { grid-column: span 1 !important; flex-direction: column; align-items: stretch; }
+          .location-strip-grid div:last-child a { width: 100%; text-align: center; }
+        }
       `}} />
 
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 40px", position: "relative", zIndex: 1 }}>
@@ -288,11 +315,12 @@ export default function AboutSection() {
           </motion.div>
         </div>
 
-        {/* COUNTER METRICS STRIP BANNER */}
-        <motion.div variants={stag} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-40px" }} style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "16px", marginBottom: 64 }}>
+        {/* COUNTER METRICS RESPONSIVE STRIP BANNER */}
+        {/* FIX: Moved from inline grid settings to responsive layout class handler */}
+        <motion.div variants={stag} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-40px" }} className="stats-responsive-grid">
           {STATS.map((s, i) => (
             <motion.div key={i} variants={up} style={{ position: "relative", zIndex: 5, perspective: "1000px" }}>
-              <TiltCard maxTilt={12} maxMove={10} style={{ textAlign: "center" }}>
+              <TiltCard maxTilt={12} maxMove={10} style={{ textAlign: "center", height: "100%" }}>
                 <div style={{ padding: "clamp(24px,3vw,36px) clamp(16px,2vw,28px)" }}>
                   <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(2.2rem,4vw,3.6rem)", fontWeight: 400, lineHeight: 1, background: "linear-gradient(135deg,#E8B84B 0%,#C8960C 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                     <Counter target={isNaN(Number(s.num)) ? s.num : Number(s.num)} suffix={s.suf} />
@@ -320,7 +348,6 @@ export default function AboutSection() {
               <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={up} style={{ width: 40, height: 1, background: "linear-gradient(90deg,#C8960C,transparent)", marginBottom: 28 }} />
               <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }} variants={stag} style={{ textAlign: "justify", textJustify: "inter-word" }}>
                 <motion.p variants={up} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14.5px", color: "rgba(245,240,232,0.65)", lineHeight: 1.9, marginBottom: 16 }}>
-                  {/* FIX: Swapped out the old 2014 establishment string vector value for the corrected 2015 marker */}
                   Celestial Harmony is a space where musical mastery meets genuine passion. Founded by Johnson Sir in 2015 we have built a reputation on patience and absolute clarity. Parents and students consistently praise our structured approach ensuring every individual truly understands the music before moving forward.
                 </motion.p>
                 <motion.p variants={up} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14.5px", color: "rgba(245,240,232,0.65)", lineHeight: 1.9, marginBottom: 16 }}>

@@ -7,15 +7,13 @@ import Image from "next/image";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* ── COMPREHENSIVE RE-ALIGNED ASSET MATRIX (WITH RESTORED TRINITY AWARD) ── */
+/* ── COMPREHENSIVE RE-ALIGNED ASSET MATRIX ── */
 const ALL_ASSETS = [
   { src: "/founder.jpeg", alt: "Johnson Medi Sir — Academy Core Focus", sizeClass: "col-span-2 row-span-2", objPos: "center 8%", featured: true, label: "Principal Director", title: "Johnson Medi Sir" },
   { src: "/examiner1.jpeg", alt: "Official Trinity Evaluation Session 1", sizeClass: "col-span-2 row-span-2", objPos: "top center", featured: true, label: "Live Assessment", title: "Official Trinity Sessions" },
   { src: "/groupclick.jpg", alt: "Celestial Harmony Academy Student Group", sizeClass: "col-span-2 row-span-2", objPos: "center", featured: true, label: "Academy Group", title: "Student Community" },
   { src: "/groupclick2.jpg", alt: "Celestial Harmony Academy Group Session", sizeClass: "col-span-2 row-span-2", objPos: "center", featured: true, label: "Academy Group", title: "Music Ensemble" },
   { src: "/examiner2.jpeg", alt: "Official Trinity Evaluation Session 2", sizeClass: "col-span-2 row-span-2", objPos: "top center", featured: true, label: "Global Validation", title: "100% Passing Metric Record" },
-  
-  // FIX: Revived trinityaward.jpeg and completely removed the yoga day stage banner (/certificateschool.jpeg)
   { src: "/trinityaward.jpeg", alt: "Trinity Validation Award", sizeClass: "col-span-1 row-span-2", objPos: "center" },
   
   { src: "/studentmugshot1.jpeg", alt: "Student Distinction Profile 1", sizeClass: "col-span-1 row-span-2", objPos: "center 20%" },
@@ -259,6 +257,7 @@ export default function TrinitySection() {
 
   useEffect(() => {
     const handleSecurityBlock = (e: KeyboardEvent) => {
+      if (process.env.NODE_ENV === "development") return;
       if (
         e.key === "F12" ||
         (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "C" || e.key === "J")) ||
@@ -269,7 +268,10 @@ export default function TrinitySection() {
       }
     };
 
-    const handleContextMenuBlock = (e: MouseEvent) => e.preventDefault();
+    const handleContextMenuBlock = (e: MouseEvent) => {
+      if (process.env.NODE_ENV === "development") return;
+      e.preventDefault();
+    };
 
     window.addEventListener("keydown", handleSecurityBlock);
     window.addEventListener("contextmenu", handleContextMenuBlock);
@@ -290,10 +292,11 @@ export default function TrinitySection() {
         .sk-card.is-hovered { border-color: transparent !important; box-shadow: 0 24px 50px rgba(200, 150, 12, 0.15); }
         .sk-card.is-hovered::before { opacity: 1; animation-play-state: running; }
         
-        .trinity-maps-btn { position: relative; overflow: hidden; background: transparent; border: 1px solid #ffffff; color: white; padding: 18px 40px; font-family: 'DM Sans', sans-serif; font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; line-height: 1; cursor: pointer; transition: border-color 0.4s ease, box-shadow 0.4s ease; border-radius: 2px; text-decoration: none; user-select: none; }
+        /* FIX: Assigned exact matching dimensions so strings align beautifully on small screens */
+        .trinity-maps-btn { position: relative; overflow: hidden; background: transparent; border: 1px solid #ffffff; color: white; padding: 18px 0; font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; line-height: 1; cursor: pointer; transition: border-color 0.4s ease, box-shadow 0.4s ease; border-radius: 2px; text-decoration: none; user-select: none; width: 340px; max-width: 100%; text-align: center; }
         .trinity-maps-btn::before { content: ''; position: absolute; top: 50%; left: 50%; width: 300%; height: 300%; background: conic-gradient(from 0deg, transparent 60%, #C8960C 75%, #FFFFFF 85%, #C8960C 95%, transparent 100%); transform: translate(-50%, -50%) rotate(0deg); animation: rotateBorder 2.5s linear infinite; opacity: 0; transition: opacity 0.4s ease; z-index: 0; pointer-events: none; }
         .trinity-btn-inner { position: absolute; inset: 0; background-image: linear-gradient(to right, #C8960C 50%, #080808 50%); background-size: 200% 100%; background-position: 100% 0; transition: background-position 0.4s cubic-bezier(0.25, 1, 0.5, 1); z-index: 1; }
-        .trinity-btn-text { position: relative; z-index: 2; transition: color 0.4s ease; }
+        .trinity-btn-text { position: relative; z-index: 2; transition: color 0.4s ease; padding: 0 16px; }
         .trinity-maps-btn:hover::before { opacity: 1; }
         .trinity-maps-btn:hover { box-shadow: 0 0 30px rgba(200, 150, 12, 0.35); border-color: transparent !important; }
         .trinity-maps-btn:hover .trinity-btn-inner { background-position: 0 0; }
@@ -331,6 +334,22 @@ export default function TrinitySection() {
 
         .wall-vignette { position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,8,8,0.92) 0%, rgba(8,8,8,0.15) 50%, transparent 100%); pointer-events: none; z-index: 2; transition: opacity 0.4s; }
         .collage-frame-node:hover .wall-vignette { opacity: 0.4; }
+
+        .reviews-responsive-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+
+        @media (max-width: 1024px) { 
+          .reviews-responsive-grid { grid-template-columns: repeat(2, 1fr) !important; } 
+          .art-wall-collage { grid-template-columns: repeat(3, 1fr) !important; }
+        }
+        @media (max-width: 768px) { 
+          .reviews-responsive-grid { grid-template-columns: 1fr !important; } 
+          .art-wall-collage { grid-template-columns: repeat(2, 1fr) !important; }
+          .col-span-2 { grid-column: span 2 !important; }
+        }
+        @media (max-width: 480px) {
+          .art-wall-collage { grid-template-columns: 1fr !important; }
+          .col-span-2 { grid-column: span 1 !important; }
+        }
 
         .col-span-1 { grid-column: span 1; }
         .col-span-2 { grid-column: span 2; }
@@ -388,9 +407,10 @@ export default function TrinitySection() {
           </div>
         </div>
 
-        {/* ── PORTFOLIO ALIGNED 3-COLUMN REVIEW CARDS MATRIX ── */}
+        {/* ── PORTFOLIO ALIGNED RESPONSIVE REVIEW CARDS MATRIX ── */}
         <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-40px" }} variants={stag}
-          style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px", marginBottom: 56, alignItems: "stretch" }}>
+          className="reviews-responsive-grid"
+          style={{ gap: "24px", marginBottom: 56, alignItems: "stretch" }}>
           {REVIEWS.map((r, i) => (
             <ReviewCard key={i} r={r} />
           ))}
@@ -416,7 +436,6 @@ export default function TrinitySection() {
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setLightboxImg(null)}
-            // FIX: Keep browser defaults none but rely on global elevated 9999999 custom layer context
             style={{ position: "fixed", inset: 0, background: "rgba(4,4,4,0.97)", backdropFilter: "blur(20px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "40px", cursor: "none", userSelect: "none" }}
             onContextMenu={(e) => e.preventDefault()}
           >

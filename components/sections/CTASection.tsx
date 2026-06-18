@@ -71,6 +71,7 @@ function CappedCTAButton({
       ref={ref}
       onMouseMove={handlePointerMouseMove}
       onMouseLeave={handlePointerMouseLeave}
+      className="cta-button-responsive-wrapper"
       style={{
         x: translateMoveX,
         y: translateMoveY,
@@ -110,7 +111,6 @@ function HeroMetricsBar() {
     },
     {
       label: "OUR LOCATION",
-      // FIX: Calibrated geolocation target vector safely from Phase 3 to Phase 2
       value: "KPHB Phase 2",
       icon: (
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -120,7 +120,6 @@ function HeroMetricsBar() {
       )
     },
     {
-      // FIX: Synced structural review tracking to reflect both Google & Justdial counts (312 Total Reviews)
       label: "GOOGLE & JUSTDIAL",
       value: "4.9 Rating 312 Reviews",
       icon: (
@@ -132,7 +131,8 @@ function HeroMetricsBar() {
   ];
 
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "60px", marginTop: "44px", width: "100%", maxWidth: "920px", margin: "44px auto 0 auto" }}>
+    // FIX: Shifted metric row container styling dynamically over to raw responsive tracking sheets
+    <div className="hero-metrics-flex-bar" style={{ alignItems: "center", justifyContent: "center", width: "100%", maxWidth: "920px", margin: "44px auto 0 auto" }}>
       {METRIC_ITEMS.map((item, idx) => {
         const isHovered = hoveredIdx === idx;
         return (
@@ -187,16 +187,20 @@ export default function CTASection() {
     <section className="sec pt-section pb-section" style={{ background: "#080808", position: "relative", overflow: "hidden", padding: "85px 0" }}>
       
       <style dangerouslySetInnerHTML={{ __html: `
-        .cta-master-btn { position: relative; overflow: hidden; background: transparent; display: inline-flex; align-items: center; justify-content: center; padding: 1px; cursor: pointer; text-decoration: none; border-radius: 2px; transition: box-shadow 0.4s ease, border-color 0.4s ease; border: none; outline: none; width: 244px; }
+        /* FIX: Enforced native border-box constraints completely to protect padding bounds */
+        .cta-master-btn, .cta-master-btn *, .cta-master-btn *::before { box-sizing: border-box !important; }
+
+        .cta-master-btn { position: relative; overflow: hidden; background: transparent; display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; text-decoration: none; border-radius: 2px; transition: box-shadow 0.4s ease, border-color 0.4s ease; outline: none; width: 244px; }
         .cta-btn-slider-wrapper { position: relative; padding: 20px 0; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 1px; z-index: 2; overflow: hidden; }
         .cta-btn-inner-label { position: relative; z-index: 3; font-family: 'DM Sans', sans-serif; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 700; transition: color 0.4s ease; line-height: 1; }
 
+        /* FIX: Maintained solid baseline borders initially so containers do not layout jitter on translation active modes */
         .cta-master-btn.active-prime { border: 1px solid rgba(200, 150, 12, 0.4); }
         .cta-master-btn.active-prime::before { content: ''; position: absolute; top: 50%; left: 50%; width: 300%; height: 300%; background: conic-gradient(from 0deg, transparent 60%, #C8960C 75%, #FFFFFF 85%, #C8960C 95%, transparent 100%); transform: translate(-50%, -50%) rotate(0deg); animation: spinConic 2.5s linear infinite; opacity: 0; transition: opacity 0.4s ease; z-index: 1; pointer-events: none; }
         .cta-primary-slider { position: absolute; inset: 0; background-image: linear-gradient(to right, #C8960C 50%, #0d0d0d 50%); background-size: 200% 100%; background-position: 100% 0; transition: background-position 0.45s cubic-bezier(0.25, 1, 0.5, 1); z-index: 2; }
         .cta-master-btn.active-prime .cta-btn-inner-label { color: #ffffff; }
         .cta-master-btn.active-prime:hover::before { opacity: 1; }
-        .cta-master-btn.active-prime:hover { box-shadow: 0 12px 24px rgba(200, 150, 12, 0.08); border-color: transparent !important; }
+        .cta-master-btn.active-prime:hover { box-shadow: 0 12px 24px rgba(200, 150, 12, 0.08); border-color: rgba(200, 150, 12, 0.8) !important; }
         .cta-master-btn.active-prime:hover .cta-primary-slider { background-position: 0 0; }
         .cta-master-btn.active-prime:hover .cta-btn-inner-label { color: #080808; }
 
@@ -207,8 +211,15 @@ export default function CTASection() {
         .cta-master-btn.active-ghost:hover .cta-secondary-slider { background: rgba(255, 255, 255, 0.05); }
         .cta-master-btn.active-ghost:hover .cta-btn-inner-label { color: #ffffff; }
 
+        /* FIX: Responsive flex logic sheet metrics injected into core styles compilation */
+        .hero-metrics-flex-bar { display: flex; gap: 60px; }
+
+        @media (max-width: 820px) {
+          .hero-metrics-flex-bar { flex-direction: column !important; gap: 36px !important; }
+        }
         @media (max-width: 768px) {
-          .cta-master-btn { width: 100%; }
+          .cta-button-responsive-wrapper { width: 100% !important; display: block !important; margin-bottom: 12px; }
+          .cta-master-btn { width: 100% !important; max-width: 340px !important; }
         }
 
         @keyframes spinConic { 100% { transform: translate(-50%, -50%) rotate(360deg); } }

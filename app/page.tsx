@@ -3,7 +3,6 @@ import dynamic from "next/dynamic";
 import SmoothScroll   from "@/components/ui/SmoothScroll";
 import Cursor         from "@/components/ui/Cursor";
 import Navbar         from "@/components/ui/Navbar";
-import FloatDock      from "@/components/ui/FloatDock";
 import AdmissionModal from "@/components/ui/AdmissionModal";
 import MarqueeBand    from "@/components/ui/MarqueeBand";
 
@@ -31,7 +30,6 @@ export default function Home() {
         <Footer />
       </main>
       <AdmissionModal />
-      <FloatDock />
     </SmoothScroll>
   );
 }

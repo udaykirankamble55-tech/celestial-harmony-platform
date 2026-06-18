@@ -31,7 +31,6 @@ function MagneticBtn({ children, onClick }: { children: React.ReactNode; onClick
 }
 
 export default function Navbar() {
-  const [active, setActive] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
   const goto = (href: string) => {
@@ -66,7 +65,8 @@ export default function Navbar() {
         .nav-utility-icon-anchor { color: rgba(245, 240, 232, 0.45); display: flex; align-items: center; justify-content: center; transition: color 0.3s ease, transform 0.3s ease; }
         .nav-utility-icon-anchor:hover { color: #C8960C; transform: translateY(-1px); }
 
-        .mobile-menu-btn { display: none; background: transparent; border: none; flex-direction: column; gap: 6px; cursor: pointer; padding: 4px; z-index: 250; position: relative; outline: none; }
+        /* FIX: Enforced strict native display none properties to override baseline configuration streams on desktop screens */
+        .mobile-menu-btn { display: none !important; background: transparent; border: none; flex-direction: column; gap: 6px; cursor: pointer; padding: 4px; z-index: 250; position: relative; outline: none; }
         .hamburger-line { width: 22px; height: 1.5px; background-color: #ffffff; }
         
         .mobile-nav-overlay { position: fixed; inset: 0; background: #080808; z-index: 230; display: flex; flex-direction: column; padding: 140px 40px 60px; border-left: 1px solid rgba(255,255,255,0.06); }
@@ -80,6 +80,7 @@ export default function Navbar() {
         @media (max-width: 1024px) {
           .navbar-grid-container { grid-template-columns: 1fr auto !important; }
           .desktop-center-links, .desktop-right-actions { display: none !important; }
+          /* FIX: Safely override global structural states only when viewport media reaches responsive breaking point thresholds */
           .mobile-menu-btn { display: flex !important; }
         }
         @media (max-width: 480px) {
@@ -149,11 +150,10 @@ export default function Navbar() {
           </div>
 
           {/* ── RESPONSIVE MOBILE MENU HAMBURGER ── */}
-          {/* FIX: Set button to disappear smoothly when drawer is active */}
+          {/* FIX: Dropped the inline display layout flex configuration attribute trigger to prevent desktop leakage loops */}
           <button 
             className="mobile-menu-btn" 
             onClick={() => setIsOpen(true)}
-            style={{ display: isOpen ? "none" : "flex" }}
             aria-label="Open Navigation Menu"
           >
             <span className="hamburger-line" />
@@ -174,7 +174,6 @@ export default function Navbar() {
             exit={{ x: "100%" }}
             transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
           >
-            {/* FIX: Embedded dedicated structural Close Mark inside top-right bounds */}
             <button 
               onClick={() => setIsOpen(false)}
               style={{
@@ -185,7 +184,7 @@ export default function Navbar() {
                 border: "none",
                 color: "#ffffff",
                 fontSize: "26px",
-                cursor: "none",
+                cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

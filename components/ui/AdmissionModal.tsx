@@ -1,138 +1,291 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface F { name:string;dob:string;gender:string;parent:string;phone:string;email:string;instrument:string;grade:string;exp:string;schedule:string;area:string; }
-const E: F = {name:"",dob:"",gender:"",parent:"",phone:"",email:"",instrument:"",grade:"",exp:"Complete Beginner",schedule:"Flexible",area:""};
-
-function Row({l,v}:{l:string;v:string}) {
-  return <div className="slip-row"><span className="slip-lbl">{l}</span><span className="slip-val">{v||"—"}</span></div>;
+interface F { 
+  name: string; 
+  dob: string; 
+  parent: string; 
+  phone: string; 
+  email: string; 
+  instrument: string; 
+  grade: string; 
 }
+
+const E: F = { 
+  name: "", 
+  dob: "", 
+  parent: "", 
+  phone: "", 
+  email: "", 
+  instrument: "", 
+  grade: "" 
+};
 
 export default function AdmissionModal() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<F>(E);
-  const token = `ADM-${Date.now().toString(36).toUpperCase()}`;
-  const set = (k:keyof F)=>(e:React.ChangeEvent<HTMLInputElement|HTMLSelectElement>)=>setForm(f=>({...f,[k]:e.target.value}));
-  const close = ()=>{ document.getElementById("admModal")?.classList.remove("open"); document.body.style.overflow=""; };
-  const today = new Date().toLocaleDateString("en-IN",{day:"2-digit",month:"long",year:"numeric"});
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [isTouch, setIsTouch] = useState(false);
 
-  const notifyWA = () => {
-    const text=`*Celestial Harmony Academy — New Admission*\n\n🎫 *${token}*\n👤 *Student:* ${form.name}\n👪 *Parent:* ${form.parent}\n📞 *Phone:* ${form.phone}\n🎸 *Instrument:* ${form.instrument} — ${form.grade}\n📅 *Date:* ${today}\n\n_Please confirm next steps._`;
-    window.open(`https://wa.me/919885297005?text=${encodeURIComponent(text)}`,"_blank");
+  useEffect(() => {
+    const checkViewport = () => {
+      setIsTouch(window.innerWidth < 1024 || window.matchMedia("(hover: none)").matches);
+    };
+    checkViewport();
+    window.addEventListener("resize", checkViewport);
+    return () => window.removeEventListener("resize", checkViewport);
+  }, []);
+
+  useEffect(() => {
+    if (validationError) {
+      const fallbackTimer = setTimeout(() => setValidationError(null), 5000);
+      return () => clearTimeout(fallbackTimer);
+    }
+  }, [validationError]);
+
+  const handleInputChange = (k: keyof F) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const val = e.target.value;
+    
+    // ── STRICT DATE YEAR LENGTH LIMITATION FILTER ──
+    if (k === "dob" && val) {
+      const parts = val.split("-"); // HTML format standard: YYYY-MM-DD
+      if (parts[0] && parts[0].length > 4) {
+        parts[0] = parts[0].slice(0, 4);
+        setForm(f => ({ ...f, [k]: parts.join("-") }));
+        return;
+      }
+    }
+    
+    setForm(f => ({ ...f, [k]: val }));
   };
 
-  const lbl:React.CSSProperties={ fontFamily:"var(--font-b)", fontSize:10, letterSpacing:".16em", color:"var(--dim)", display:"block", marginBottom:7, textTransform:"uppercase" };
-  const g2:React.CSSProperties={ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 };
+  const closeWorkspace = () => {
+    const el = document.getElementById("admModal");
+    if (el) {
+      el.style.display = "none";
+      document.body.style.overflow = "";
+    }
+    setStep(1);
+    setForm(E);
+    setValidationError(null);
+    setShowExitConfirm(false);
+  };
+
+  const handleNext = () => {
+    if (step === 1) {
+      if (!form.name.trim()) {
+        setValidationError("Please enter the student's full name to initialize enrollment profile tracking.");
+        return;
+      }
+      
+      const uniformPhone = form.phone.replace(/\s+/g, "");
+      const domesticIndianPhoneRegex = /^[6-9]\d{9}$/;
+      if (!domesticIndianPhoneRegex.test(uniformPhone)) {
+        setValidationError("Please specify a valid 10-digit Indian contact number so our director can coordinate testing schedules.");
+        return;
+      }
+
+      if (form.email.trim()) {
+        const structuralEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!structuralEmailRegex.test(form.email.trim())) {
+          setValidationError("The email format specified appears incomplete. Please update it or leave the field blank.");
+          return;
+        }
+      }
+    }
+
+    if (step === 2) {
+      if (!form.instrument) {
+        setValidationError("Please select your targeted instrument core course track selection.");
+        return;
+      }
+      if (!form.grade) {
+        setValidationError("Please define your current Trinity College London reference grade milestone target.");
+        return;
+      }
+    }
+
+    setValidationError(null);
+    setStep(s => s + 1);
+  };
+
+  const fireOutboundWhatsAppDispatch = () => {
+    const stringRefID = "ADM-" + Date.now().toString(36).toUpperCase();
+    
+    const compiledMonospaceSlip = 
+`CELESTIAL HARMONY ACADEMY OF MUSIC
+OFFICIAL DIGITAL ADMISSION REGISTRATION
+---------------------------------------
+Reference ID      : ${stringRefID}
+Student Name      : ${form.name.trim()}
+Date of Birth     : ${form.dob ? form.dob.split("-").reverse().join("/") : "Not Specified"}
+Parent/Guardian   : ${form.parent.trim() ? form.parent.trim() : "Self-Reg / Adult"}
+Contact Number    : +91 ${form.phone.replace(/\s+/g, "")}
+Email Address     : ${form.email.trim() ? form.email.trim() : "Not Provided"}
+Selected Track    : ${form.instrument}
+Trinity Objective : ${form.grade}
+---------------------------------------
+Registration compiled via Secure Admission playhead panel loops.`;
+
+    window.open(`https://wa.me/919885297005?text=${encodeURIComponent(compiledMonospaceSlip)}`, "_blank");
+    closeWorkspace();
+  };
+
+  const handleCloseAttempt = () => {
+    if (!form.name.trim() && !form.phone.trim() && !form.instrument) {
+      closeWorkspace();
+    } else {
+      setShowExitConfirm(true);
+    }
+  };
 
   return (
-    <div id="admModal" className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)close();}}>
-      <motion.div initial={{scale:.92,opacity:0,y:30}} animate={{scale:1,opacity:1,y:0}} transition={{duration:.4,ease:[0.23,1,0.32,1]}}
-        className="modal-box glass" style={{ padding:"36px" }}>
-        {/* Header */}
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
-          <div>
-            <p className="label" style={{ marginBottom:6 }}>Celestial Harmony Academy</p>
-            <h3 style={{ fontFamily:"var(--font-h)", fontSize:"clamp(1.3rem,2.5vw,1.8rem)", color:"var(--white)", fontStyle:"italic" }}>Digital Admission</h3>
-          </div>
-          <button onClick={close} style={{ width:30,height:30,background:"rgba(255,255,255,.06)",border:"1px solid var(--border)",color:"var(--muted)",fontSize:13,cursor:"none",display:"flex",alignItems:"center",justifyContent:"center" }}>✕</button>
-        </div>
-        {/* Steps */}
-        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:28 }}>
-          {[1,2,3].map(s=>(
-            <div key={s} style={{ display:"flex", alignItems:"center", gap:8 }}>
-              <div className={`sdot ${step===s?"act":step>s?"done":""}`} />
-              {s<3&&<div style={{ width:48, height:1, background:step>s?"rgba(200,150,12,.4)":"var(--border)", transition:"background .3s" }} />}
-            </div>
-          ))}
-          <p style={{ fontFamily:"var(--font-b)", fontSize:10, letterSpacing:".1em", color:"var(--dim)", marginLeft:8 }}>
-            Step {step} / 3 — {["","Personal Info","Music Details","Admission Slip"][step]}
-          </p>
-        </div>
+    <div 
+      id="admModal" 
+      onClick={(e) => e.target === e.currentTarget && handleCloseAttempt()}
+      style={{ 
+        position: "fixed", inset: 0, zIndex: 99999, display: "none", 
+        alignItems: "center", justifyContent: "center", background: "rgba(4,4,4,0.95)", 
+        backdropFilter: "blur(16px)", padding: "16px" 
+      }}
+    >
+      {/* ── METRIC RESET & LAYOUT PROTECTION CSS HOOKS ── */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .adm-modal-field { box-sizing: border-box !important; width: 100% !important; max-width: 100% !important; height: 48px; background: #0e1114; border: 1px solid rgba(255,255,255,0.08); padding: 0 16px; font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: #ffffff; border-radius: 2px; outline: none; transition: border-color 0.3s ease; display: block; -webkit-appearance: none; -moz-appearance: none; appearance: none; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+        .adm-modal-field:focus { border-color: #C8960C; }
+        
+        /* Chromatic Gold Filter Calendar Picker Overrides */
+        .adm-modal-field::-webkit-calendar-picker-indicator { filter: invert(61%) sepia(82%) saturate(541%) hue-rotate(5deg) brightness(93%) contrast(95%); cursor: pointer; opacity: 0.85; transition: opacity 0.2s; }
+        .adm-modal-field::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+        
+        /* ── DROPDOWN FLUSH ALIGNMENT CONSTRAINTS: Table-fixed structures prevent viewport escape leaks ── */
+        select.adm-modal-field { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23C8960C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>"); background-repeat: no-repeat; background-position: right 14px center; background-size: 16px; padding-right: 40px !important; table-layout: fixed; }
+        select.adm-modal-field option { background: #0a0c0f; color: #ffffff; max-width: 100% !important; overflow: hidden; text-overflow: ellipsis; }
 
+        .adm-primary-action-btn { position: relative; overflow: hidden; width: 100%; height: 50px; background: #C8960C; color: #0a0c0f; font-family: 'DM Sans', sans-serif; font-size: 11.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; border: 1px solid #C8960C; border-radius: 2px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.35s, color 0.35s, border-color 0.35s; padding: 0 16px; text-align: center; white-space: nowrap; }
+        .adm-ghost-action-btn { width: 100%; height: 50px; background: transparent; color: rgba(255,255,255,0.6); font-family: 'DM Sans', sans-serif; font-size: 11.5px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.15); border-radius: 2px; cursor: pointer; transition: border-color 0.3s, color 0.3s; padding: 0 16px; text-align: center; white-space: nowrap; }
+        
+        @media (hover: hover) and (pointer: fine) {
+          .adm-primary-action-btn:hover { background: transparent; color: #C8960C; }
+          .adm-ghost-action-btn:hover { border-color: #ffffff; color: #ffffff; }
+        }
+
+        @media (max-width: 480px) {
+          .adm-primary-action-btn { font-size: 10.5px !important; letter-spacing: 0.12em !important; height: 46px !important; padding: 0 8px !important; }
+          .adm-ghost-action-btn { font-size: 10.5px !important; letter-spacing: 0.12em !important; height: 46px !important; padding: 0 8px !important; }
+          .adm-modal-panel-box { padding: 24px 20px !important; }
+        }
+      `}} />
+
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} 
+        className="adm-modal-panel-box"
+        style={{ position: "relative", width: "100%", maxWidth: "440px", background: "#0a0c0f", border: "1px solid rgba(200,150,12,0.2)", borderRadius: "4px", padding: "32px", maxHeight: "94vh", display: "flex", flexDirection: "column", overflow: "hidden" }}
+      >
         <AnimatePresence mode="wait">
-          {step===1&&(
-            <motion.div key="s1" initial={{opacity:0,x:24}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-24}} transition={{duration:.28}}>
-              <div style={g2}>
-                <div style={{ gridColumn:"1/-1" }}>
-                  <label style={lbl}>Student Full Name *</label>
-                  <input className="field" placeholder="As per school records" value={form.name} onChange={set("name")} />
-                </div>
-                <div><label style={lbl}>Date of Birth *</label><input className="field" type="date" value={form.dob} onChange={set("dob")} /></div>
-                <div><label style={lbl}>Gender</label>
-                  <select className="field" value={form.gender} onChange={set("gender")}>
-                    <option value="">Select</option><option>Male</option><option>Female</option><option>Prefer not to say</option>
-                  </select>
-                </div>
-                <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Parent / Guardian *</label><input className="field" placeholder="Parent or guardian name" value={form.parent} onChange={set("parent")} /></div>
-                <div><label style={lbl}>Phone *</label><input className="field" type="tel" placeholder="+91 98852 97005" value={form.phone} onChange={set("phone")} /></div>
-                <div><label style={lbl}>Email</label><input className="field" type="email" placeholder="email@example.com" value={form.email} onChange={set("email")} /></div>
-              </div>
-              <button onClick={()=>setStep(2)} className="btn-primary" style={{ width:"100%", marginTop:24 }}><span>Continue →</span></button>
-            </motion.div>
-          )}
-          {step===2&&(
-            <motion.div key="s2" initial={{opacity:0,x:24}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-24}} transition={{duration:.28}}>
-              <div style={g2}>
-                <div><label style={lbl}>Instrument *</label>
-                  <select className="field" value={form.instrument} onChange={set("instrument")}>
-                    <option value="">Select</option>
-                    {["Guitar","Keyboard / Piano","Violin","Vocals","Drums & Percussion","Music Theory","Other"].map(o=><option key={o}>{o}</option>)}
-                  </select>
-                </div>
-                <div><label style={lbl}>Trinity Grade Target</label>
-                  <select className="field" value={form.grade} onChange={set("grade")}>
-                    <option value="">Select</option>
-                    {["Beginner","Grade 1","Grade 2","Grade 3","Grade 4","Grade 5","Grade 6","Grade 7","Grade 8","Diploma ATCL/LTCL"].map(g=><option key={g}>{g}</option>)}
-                  </select>
-                </div>
-                <div><label style={lbl}>Prior Experience</label>
-                  <select className="field" value={form.exp} onChange={set("exp")}>
-                    {["Complete Beginner","1–2 Yrs Informal","1–2 Yrs Formal","3–5 Years","5+ Years"].map(e=><option key={e}>{e}</option>)}
-                  </select>
-                </div>
-                <div><label style={lbl}>Preferred Schedule</label>
-                  <select className="field" value={form.schedule} onChange={set("schedule")}>
-                    {["Flexible","Weekday Mornings","Weekday Evenings","Weekend Mornings","Weekend Afternoons"].map(s=><option key={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div style={{ gridColumn:"1/-1" }}><label style={lbl}>Your Locality / Area</label><input className="field" placeholder="KPHB, Kukatpally, Miyapur…" value={form.area} onChange={set("area")} /></div>
-              </div>
-              <div style={{ display:"flex", gap:12, marginTop:24 }}>
-                <button onClick={()=>setStep(1)} className="btn-ghost" style={{ flex:1 }}>← Back</button>
-                <button onClick={()=>setStep(3)} className="btn-primary" style={{ flex:2 }}><span>Generate Slip →</span></button>
+          {showExitConfirm ? (
+            /* Exit confirmation dialog interface */
+            <motion.div key="exitConfirm" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} style={{ display: "flex", flexDirection: "column", justifyContent: "center", height: "100%", padding: "16px 0" }}>
+              <h4 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "22px", color: "#ffffff", fontWeight: 400, margin: "0 0 12px 0", textAlign: "center" }}>Cancel Admission Process?</h4>
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13.5px", color: "rgba(255,255,255,0.5)", lineHeight: "1.6", textAlign: "center", margin: "0 0 24px 0" }}>
+                Your current application parameter entries will be discarded. Are you sure you want to exit and return to the homepage?
+              </p>
+              <div style={{ display: "flex", gap: "12px" }}>
+                <button onClick={closeWorkspace} className="adm-primary-action-btn" style={{ background: "#8a1f1f", borderColor: "#ff4444", color: "#ffffff", flex: 1 }}>Yes, Exit Process</button>
+                <button onClick={() => setShowExitConfirm(false)} className="adm-ghost-action-btn" style={{ flex: 1 }}>No, Resume</button>
               </div>
             </motion.div>
-          )}
-          {step===3&&(
-            <motion.div key="s3" initial={{opacity:0,x:24}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-24}} transition={{duration:.28}}>
-              <div className="slip">
-                <div style={{ textAlign:"center", borderBottom:"1px solid var(--border)", paddingBottom:16, marginBottom:16 }}>
-                  <p className="label" style={{ color:"var(--gold)", marginBottom:6 }}>Celestial Harmony Academy of Music</p>
-                  <p style={{ fontFamily:"var(--font-b)", fontSize:11, color:"var(--dim)" }}>HIG-68, KPHB Colony Phase 3, Hyderabad 500072</p>
-                  <h4 style={{ fontFamily:"var(--font-h)", fontSize:"1.4rem", color:"var(--white)", fontStyle:"italic", marginTop:8 }}>Digital Admission Slip</h4>
-                  <p className="label" style={{ color:"var(--gold)", marginTop:6 }}>{token}</p>
+          ) : (
+            /* Main Application workspace */
+            <motion.div key="formContent" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+              
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+                <div>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: "#C8960C", margin: "0 0 4px 0", fontWeight: 600 }}>Celestial Harmony</p>
+                  <h3 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "22px", color: "#ffffff", fontWeight: 400, margin: 0 }}>Digital Admission</h3>
                 </div>
-                <Row l="Student Name"    v={form.name}  />
-                <Row l="Date of Birth"   v={form.dob}   />
-                <Row l="Parent/Guardian" v={form.parent}/>
-                <Row l="Phone"           v={form.phone} />
-                <Row l="Email"           v={form.email} />
-                <Row l="Instrument"      v={form.instrument}/>
-                <Row l="Grade Target"    v={form.grade} />
-                <Row l="Experience"      v={form.exp}   />
-                <Row l="Schedule"        v={form.schedule}/>
-                <Row l="Area"            v={form.area}  />
-                <Row l="Applied On"      v={today}      />
-                <div style={{ marginTop:14, padding:"10px 14px", border:"1px solid rgba(200,150,12,.15)", background:"rgba(200,150,12,.04)" }}>
-                  <p style={{ fontFamily:"var(--font-b)", fontSize:11, color:"var(--dim)", lineHeight:1.7, textAlign:"center" }}>📌 This confirms your expression of interest. Enrollment finalised upon fee receipt and faculty confirmation. Screenshot or print this slip.</p>
-                </div>
+                <button onClick={handleCloseAttempt} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#ffffff", padding: "6px 12px", cursor: "pointer", fontSize: "12px", borderRadius: "1px", transition: "border-color 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = "#C8960C"} onMouseLeave={(e) => e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"}>✕</button>
               </div>
-              <div style={{ display:"flex", gap:10, marginTop:18 }}>
-                <button onClick={()=>setStep(2)} className="btn-ghost" style={{ flex:"0 0 auto", padding:"12px 20px" }}>← Edit</button>
-                <button onClick={()=>window.print()} className="btn-ghost" style={{ flex:1 }}>🖨 Print</button>
-                <button onClick={notifyWA} className="btn-primary" style={{ flex:2 }}><span>Notify via WhatsApp →</span></button>
+
+              <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+                {[1, 2, 3].map(s => (
+                  <div key={s} style={{ flex: 1, height: 2, background: step >= s ? "#C8960C" : "rgba(255,255,255,0.06)", transition: "background 0.4s" }} />
+                ))}
               </div>
+
+              <AnimatePresence mode="wait">
+                {validationError && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ overflow: "hidden", marginBottom: 16 }}>
+                    <div style={{ background: "rgba(234, 67, 53, 0.06)", borderLeft: "3px solid #EA4335", padding: "10px 14px" }}>
+                      <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "12.5px", color: "#EA4335", margin: 0, fontWeight: 500, lineHeight: "1.4" }}>{validationError}</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div style={{ flex: 1, overflowY: "auto", paddingRight: "2px" }}>
+                <AnimatePresence mode="wait">
+                  
+                  {step === 1 && (
+                    <motion.div key="s1" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      <input className="adm-modal-field" placeholder="Student Full Name *" value={form.name} onChange={handleInputChange("name")} />
+                      
+                      <div>
+                        <label style={{ display: "block", fontFamily: "'DM Sans', sans-serif", fontSize: "9px", letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: "6px", fontWeight: 600 }}>Date of Birth (Optional)</label>
+                        <input className="adm-modal-field" type="date" value={form.dob} onChange={handleInputChange("dob")} />
+                      </div>
+
+                      <input className="adm-modal-field" placeholder="Parent / Guardian Name (Adults leave blank)" value={form.parent} onChange={handleInputChange("parent")} />
+                      <input className="adm-modal-field" type="tel" placeholder="Contact Phone Number *" value={form.phone} onChange={handleInputChange("phone")} />
+                      <input className="adm-modal-field" type="email" placeholder="Email Address (Optional)" value={form.email} onChange={handleInputChange("email")} />
+                      
+                      <button onClick={handleNext} className="adm-primary-action-btn" style={{ marginTop: 8 }}>Continue Profile Track →</button>
+                    </motion.div>
+                  )}
+
+                  {step === 2 && (
+                    <motion.div key="s2" initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      {/* ── CONSTRAINED STRINGS: Form placeholders set compact to prevent menu bleeding bugs ── */}
+                      <select className="adm-modal-field" value={form.instrument} onChange={handleInputChange("instrument")}>
+                        <option value="">Select Instrument *</option>
+                        {["Guitar", "Piano", "Violin", "Vocals", "Drums"].map(o => <option key={o}>{o}</option>)}
+                      </select>
+                      
+                      <select className="adm-modal-field" value={form.grade} onChange={handleInputChange("grade")}>
+                        <option value="">Select Target Grade *</option>
+                        {["Initial / Absolute Beginner", "Grade 1 Certification", "Grade 2 Certification", "Grade 3 Certification", "Grade 4 Certification", "Grade 5 Certification", "Grade 6 Technical Track", "Grade 7 Advanced Track", "Grade 8 Distinction Track"].map(g => <option key={g}>{g}</option>)}
+                      </select>
+                      
+                      <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
+                        <button onClick={() => setStep(1)} className="adm-ghost-action-btn" style={{ flex: 1 }}>Back</button>
+                        <button onClick={handleNext} className="adm-primary-action-btn" style={{ flex: 1.8 }}>Generate Slip Sheet →</button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {step === 3 && (
+                    <motion.div key="s3" initial={{ opacity: 0, scale: 0.99 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                      <div style={{ background: "#0e1114", border: "1px solid rgba(255,255,255,0.06)", padding: "20px", borderRadius: "2px" }}>
+                        <h4 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "16px", color: "#ffffff", fontWeight: 400, margin: "0 0 12px 0", letterSpacing: "0.02em" }}>Admission Summary Slip</h4>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontFamily: "'DM Sans', sans-serif", fontSize: "13.5px", color: "rgba(245,240,232,0.6)" }}>
+                          <p style={{ margin: 0 }}><strong style={{ color: "#C8960C", fontWeight: 600 }}>Student:</strong> {form.name}</p>
+                          <p style={{ margin: 0 }}><strong style={{ color: "#C8960C", fontWeight: 600 }}>Phone:</strong> +91 {form.phone}</p>
+                          <p style={{ margin: 0 }}><strong style={{ color: "#C8960C", fontWeight: 600 }}>Course Track:</strong> {form.instrument}</p>
+                          <p style={{ margin: 0 }}><strong style={{ color: "#C8960C", fontWeight: 600 }}>Objective:</strong> {form.grade}</p>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 12 }}>
+                        <button onClick={() => setStep(2)} className="adm-ghost-action-btn" style={{ flex: 1 }}>Back</button>
+                        <button onClick={fireOutboundWhatsAppDispatch} className="adm-primary-action-btn" style={{ flex: 2.2 }}>Notify via WhatsApp</button>
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                </AnimatePresence>
+              </div>
+
             </motion.div>
           )}
         </AnimatePresence>

@@ -6,25 +6,61 @@ import ScrollTrigger from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
+// ── Shared Responsive Device Interaction Guard Hook ──
+function useTouchDeviceGuard() {
+  const [isTouch, setIsTouch] = useState(false);
+  useEffect(() => {
+    const checkDevice = () => {
+      setIsTouch(window.innerWidth < 1024 || window.matchMedia("(hover: none)").matches);
+    };
+    checkDevice();
+    window.addEventListener("resize", checkDevice);
+    return () => window.removeEventListener("resize", checkDevice);
+  }, []);
+  return isTouch;
+}
+
 const up: Variants = {
   hidden: { opacity: 0, y: 32 },
   show:   { opacity: 1, y: 0, transition: { duration: 0.75, ease: [0.23, 1, 0.32, 1] } },
 };
+
 const stag: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 
 /* ── Masked Reveal Row Component for Smooth Text Slide-Up ── */
 function MLine({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties; }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(el,
+        { y: "105%", opacity: 0 },
+        {
+          y: "0%",
+          opacity: 1,
+          duration: 0.85,
+          delay: delay,
+          ease: "power2.out", // Fixed: Corrected array format to native GSAP string easing
+          scrollTrigger: {
+            trigger: el,
+            start: "top 92%",
+            toggleActions: "play none none reset"
+          }
+        }
+      );
+    }, ref);
+
+    return () => ctx.revert();
+  }, [delay]);
+
   return (
     <div style={{ overflow: "hidden", paddingBottom: "0.06em", marginBottom: "-0.04em", display: "block" }}>
-      <motion.div 
-        variants={{ 
-          hidden: { y: "105%", opacity: 0 }, 
-          show: { y: "0%", opacity: 1, transition: { duration: 0.85, ease: [0.23, 1, 0.32, 1], delay } } 
-        }} 
-        style={{ display: "block", ...style }}
-      >
+      <div ref={ref} style={{ display: "block", ...style }}>
         {children}
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -36,6 +72,8 @@ function CappedCTAButton({
   children: React.ReactNode; onClick?: () => void; href?: string; isPrimary: boolean; 
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const isTouchDevice = useTouchDeviceGuard();
+  
   const mX = useMotionValue(0);
   const mY = useMotionValue(0);
 
@@ -48,7 +86,7 @@ function CappedCTAButton({
   const surfaceTiltY = useTransform(springX, [-0.5, 0.5], [-6, 6]);
 
   const handlePointerMouseMove = (e: React.MouseEvent) => {
-    if (!ref.current) return;
+    if (isTouchDevice || !ref.current) return;
     const rect = ref.current.getBoundingClientRect();
     mX.set((e.clientX - rect.left) / rect.width - 0.5);
     mY.set((e.clientY - rect.top) / rect.height - 0.5);
@@ -73,17 +111,20 @@ function CappedCTAButton({
       onMouseLeave={handlePointerMouseLeave}
       className="cta-button-responsive-wrapper"
       style={{
-        x: translateMoveX,
-        y: translateMoveY,
-        rotateX: surfaceTiltX,
-        rotateY: surfaceTiltY,
-        transformStyle: "preserve-3d",
-        perspective: "1000px",
-        display: "inline-block"
+        x: isTouchDevice ? 0 : translateMoveX,
+        y: isTouchDevice ? 0 : translateMoveY,
+        rotateX: isTouchDevice ? 0 : surfaceTiltX,
+        rotateY: isTouchDevice ? 0 : surfaceTiltY,
+        transformStyle: isTouchDevice ? "flat" : "preserve-3d",
+        perspective: isTouchDevice ? "none" : "1000px",
+        display: "inline-block",
+        willChange: "transform",
+        backfaceVisibility: "hidden",
+        WebkitBackfaceVisibility: "hidden"
       }}
     >
       {href ? (
-        <a href={href} target="_blank" rel="noopener" className={isPrimary ? "cta-master-btn active-prime" : "cta-master-btn active-ghost"}>
+        <a href={href} target="_blank" rel="noopener noreferrer" className={isPrimary ? "cta-master-btn active-prime" : "cta-master-btn active-ghost"}>
           {internalContent}
         </a>
       ) : (
@@ -98,6 +139,7 @@ function CappedCTAButton({
 /* ── Redesigned Symmetrical Metrics Bar Sub-Component ── */
 function HeroMetricsBar() {
   const [hoveredIdx, setHoveredIndex] = useState<number | null>(null);
+  const isTouchDevice = useTouchDeviceGuard();
 
   const METRIC_ITEMS = [
     {
@@ -131,15 +173,13 @@ function HeroMetricsBar() {
   ];
 
   return (
-    // FIX: Shifted metric row container styling dynamically over to raw responsive tracking sheets
     <div className="hero-metrics-flex-bar" style={{ alignItems: "center", justifyContent: "center", width: "100%", maxWidth: "920px", margin: "44px auto 0 auto" }}>
       {METRIC_ITEMS.map((item, idx) => {
-        const isHovered = hoveredIdx === idx;
+        const isHovered = hoveredIdx === idx && !isTouchDevice;
         return (
-          <div key={idx} onMouseEnter={() => setHoveredIndex(idx)} onMouseLeave={() => setHoveredIndex(null)} style={{ display: "flex", alignItems: "center", position: "relative" }}>
+          <div key={idx} onMouseEnter={() => !isTouchDevice && setHoveredIndex(idx)} onMouseLeave={() => setHoveredIndex(null)} style={{ display: "flex", alignItems: "center", position: "relative" }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", cursor: "default" }}>
               
-              {/* Top Row Block */}
               <div style={{ 
                 fontFamily: "'DM Sans', sans-serif", fontSize: "14.5px", fontWeight: 700, 
                 color: isHovered ? "#C8960C" : "#ffffff", letterSpacing: "0.02em", 
@@ -150,13 +190,8 @@ function HeroMetricsBar() {
                 {item.value}
               </div>
 
-              {/* Bottom Row Block */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", marginTop: "6px" }}>
-                <span style={{ 
-                  display: "flex", alignItems: "center", 
-                  color: isHovered ? "#C8960C" : "rgba(245,240,232,0.35)", 
-                  transition: "color 0.35s ease" 
-                }}>
+                <span style={{ display: "flex", alignItems: "center", color: isHovered ? "#C8960C" : "rgba(245,240,232,0.35)", transition: "color 0.35s ease" }}>
                   {item.icon}
                 </span>
                 <span style={{ 
@@ -176,50 +211,58 @@ function HeroMetricsBar() {
   );
 }
 
-/* ── MAIN CTA BLOCK MODULE ── */
 export default function CTASection() {
   const openModal = () => {
     const el = document.getElementById("admModal");
-    if (el) { el.classList.add("open"); document.body.style.overflow = "hidden"; }
+    if (el) { 
+      el.style.display = "flex"; 
+      document.body.style.overflow = "hidden"; 
+    }
   };
 
   return (
     <section className="sec pt-section pb-section" style={{ background: "#080808", position: "relative", overflow: "hidden", padding: "85px 0" }}>
       
+      {/* ── FLATTENED NON-NESTED COMPILATION SAFE CSS HOOKS ── */}
       <style dangerouslySetInnerHTML={{ __html: `
-        /* FIX: Enforced native border-box constraints completely to protect padding bounds */
         .cta-master-btn, .cta-master-btn *, .cta-master-btn *::before { box-sizing: border-box !important; }
 
-        .cta-master-btn { position: relative; overflow: hidden; background: transparent; display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; text-decoration: none; border-radius: 2px; transition: box-shadow 0.4s ease, border-color 0.4s ease; outline: none; width: 244px; }
+        .cta-master-btn { position: relative; overflow: hidden; background: transparent; display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; text-decoration: none; border-radius: 2px; transition: border-color 0.4s ease; outline: none; width: 244px; }
         .cta-btn-slider-wrapper { position: relative; padding: 20px 0; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border-radius: 1px; z-index: 2; overflow: hidden; }
-        .cta-btn-inner-label { position: relative; z-index: 3; font-family: 'DM Sans', sans-serif; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 700; transition: color 0.4s ease; line-height: 1; }
+        
+        .cta-btn-inner-label { position: relative; z-index: 5 !important; font-family: 'DM Sans', sans-serif; font-size: 11.5px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 700; transition: color 0.4s ease; line-height: 1; white-space: nowrap; }
 
-        /* FIX: Maintained solid baseline borders initially so containers do not layout jitter on translation active modes */
         .cta-master-btn.active-prime { border: 1px solid rgba(200, 150, 12, 0.4); }
         .cta-master-btn.active-prime::before { content: ''; position: absolute; top: 50%; left: 50%; width: 300%; height: 300%; background: conic-gradient(from 0deg, transparent 60%, #C8960C 75%, #FFFFFF 85%, #C8960C 95%, transparent 100%); transform: translate(-50%, -50%) rotate(0deg); animation: spinConic 2.5s linear infinite; opacity: 0; transition: opacity 0.4s ease; z-index: 1; pointer-events: none; }
+        
         .cta-primary-slider { position: absolute; inset: 0; background-image: linear-gradient(to right, #C8960C 50%, #0d0d0d 50%); background-size: 200% 100%; background-position: 100% 0; transition: background-position 0.45s cubic-bezier(0.25, 1, 0.5, 1); z-index: 2; }
         .cta-master-btn.active-prime .cta-btn-inner-label { color: #ffffff; }
-        .cta-master-btn.active-prime:hover::before { opacity: 1; }
-        .cta-master-btn.active-prime:hover { box-shadow: 0 12px 24px rgba(200, 150, 12, 0.08); border-color: rgba(200, 150, 12, 0.8) !important; }
-        .cta-master-btn.active-prime:hover .cta-primary-slider { background-position: 0 0; }
-        .cta-master-btn.active-prime:hover .cta-btn-inner-label { color: #080808; }
 
         .cta-master-btn.active-ghost { border: 1px solid rgba(255, 255, 255, 0.15); }
         .cta-secondary-slider { position: absolute; inset: 0; background: transparent; transition: background 0.35s ease; z-index: 2; }
         .cta-master-btn.active-ghost .cta-btn-inner-label { color: rgba(255, 255, 255, 0.7); }
-        .cta-master-btn.active-ghost:hover { border-color: #ffffff; box-shadow: 0 12px 24px rgba(255, 255, 255, 0.03); }
-        .cta-master-btn.active-ghost:hover .cta-secondary-slider { background: rgba(255, 255, 255, 0.05); }
-        .cta-master-btn.active-ghost:hover .cta-btn-inner-label { color: #ffffff; }
 
-        /* FIX: Responsive flex logic sheet metrics injected into core styles compilation */
         .hero-metrics-flex-bar { display: flex; gap: 60px; }
+
+        @media (hover: hover) and (pointer: fine) {
+          .cta-master-btn.active-prime:hover::before { opacity: 1; }
+          .cta-master-btn.active-prime:hover { border-color: rgba(200, 150, 12, 0.8) !important; box-shadow: none !important; }
+          .cta-master-btn.active-prime:hover .cta-primary-slider { background-position: 0 0; }
+          .cta-master-btn.active-prime:hover .cta-btn-inner-label { color: #080808 !important; }
+          
+          .cta-master-btn.active-ghost:hover { border-color: #ffffff; box-shadow: none !important; }
+          .cta-master-btn.active-ghost:hover .cta-secondary-slider { background: rgba(255, 255, 255, 0.05); }
+          .cta-master-btn.active-ghost:hover .cta-btn-inner-label { color: #ffffff !important; }
+        }
 
         @media (max-width: 820px) {
           .hero-metrics-flex-bar { flex-direction: column !important; gap: 36px !important; }
         }
-        @media (max-width: 768px) {
-          .cta-button-responsive-wrapper { width: 100% !important; display: block !important; margin-bottom: 12px; }
-          .cta-master-btn { width: 100% !important; max-width: 340px !important; }
+        @media (max-width: 1023px) {
+          .cta-btn-inner-label { font-size: 11px !important; letter-spacing: 0.16em !important; }
+          .cta-button-responsive-wrapper { width: 100% !important; display: block !important; margin-bottom: 12px; text-align: center; }
+          .cta-master-btn { width: 100% !important; max-width: 290px !important; }
+          .cta-btn-slider-wrapper { padding: 18px 0 !important; }
         }
 
         @keyframes spinConic { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
@@ -227,7 +270,7 @@ export default function CTASection() {
 
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 800, height: 400, backgroundImage: "radial-gradient(ellipse at center, rgba(200, 150, 12, 0.05) 0%, transparent 75%)", pointerEvents: "none", zIndex: 1 }} />
       
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 40px", position: "relative", zIndex: 5, textAlign: "center" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 clamp(20px, 4vw, 40px)", position: "relative", zIndex: 5, textAlign: "center" }}>
         
         <motion.div variants={stag} initial="hidden" whileInView="show" viewport={{ once: false, margin: "-40px" }}>
           

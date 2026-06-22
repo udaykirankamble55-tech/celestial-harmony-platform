@@ -11,7 +11,7 @@ const ITEMS = [
   "Staff Notation",
   "Music for All Ages",
   "KPHB Hyderabad",
-  "Est. 2014",
+  "Est. 2015", // Fixed: Synchronized establishment timeline precisely with core branding targets
   "100% Distinction Record",
   "The Right Way to Learn Music"
 ];

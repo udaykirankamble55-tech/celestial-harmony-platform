@@ -1,8 +1,13 @@
 "use client";
 import { useRef, useEffect, useState } from "react";
-import { motion, useMotionValue, useSpring, useTransform, Variants } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
 import Image from "next/image";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 // ── Shared Responsive Device Interaction Guard Hook ──
 function useTouchDeviceGuard() {
@@ -37,13 +42,17 @@ const liftUpSmall: Variants = {
   show:   { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 1, 0.32, 1] } },
 };
 
-// ── Smooth Performance-Grade Text Mask Reveal Component ──
+// ── RESTORED: Master Fluid Viewport Timing Triggers For Both Desktop and Mobile Viewports ──
 function MLine({ children, delay = 0, style, className = "" }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties; className?: string; }) {
   const ref = useRef<HTMLDivElement>(null);
+  const isTouch = useTouchDeviceGuard();
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    // Fast-track initial viewport intersection rules on mobile to capture direct swipe sequences
+    const trackingThreshold = isTouch ? "top 100%" : "top 92%";
 
     const ctx = gsap.context(() => {
       gsap.fromTo(el,
@@ -56,7 +65,7 @@ function MLine({ children, delay = 0, style, className = "" }: { children: React
           ease: "power2.out",
           scrollTrigger: {
             trigger: el,
-            start: "top 92%",
+            start: trackingThreshold,
             toggleActions: "play none none reset"
           }
         }
@@ -64,7 +73,7 @@ function MLine({ children, delay = 0, style, className = "" }: { children: React
     }, ref);
 
     return () => ctx.revert();
-  }, [delay]);
+  }, [delay, isTouch]);
 
   return (
     <div className={className} style={{ overflow: "hidden", paddingBottom: "0.06em", marginBottom: "-0.04em" }}>
@@ -75,21 +84,9 @@ function MLine({ children, delay = 0, style, className = "" }: { children: React
   );
 }
 
-// ── Smart Multi-Viewport Program Card Component ──
-function ProgramCard({ 
-  prog, 
-  i, 
-  isOpenOnMobile, 
-  onToggleMobile 
-}: { 
-  prog: typeof INSTRUMENTS[0]; 
-  i: number;
-  isOpenOnMobile: boolean;
-  onToggleMobile: () => void;
-}) {
+function ProgramCard({ prog, i, isOpenOnMobile, onToggleMobile }: { prog: typeof INSTRUMENTS[0]; i: number; isOpenOnMobile: boolean; onToggleMobile: () => void; }) {
   const [isHovered, setIsHovered] = useState(false);
   const isTouchDevice = useTouchDeviceGuard();
-  
   const isExpanded = isTouchDevice ? isOpenOnMobile : isHovered;
 
   return (
@@ -131,7 +128,7 @@ function ProgramCard({
         <div style={{ position: "absolute", inset: 0, background: isExpanded ? "rgba(8,8,8,0.2)" : "linear-gradient(to top, rgba(8,8,8,0.75) 0%, rgba(8,8,8,0.1) 35%, transparent 100%)", transition: "background 0.45s ease" }} />
       </div>
 
-      {/* Masked Sliding Description Content Box */}
+      {/* Sliding Description Container Content Box */}
       <div 
         style={{ 
           position: "absolute", 
@@ -183,8 +180,7 @@ export default function ProgramsSection() {
   };
 
   return (
-    <section id="programs" style={{ position: "relative", background: "#080808", padding: "clamp(60px, 8vw, 120px) 0", overflow: "hidden" }}>
-      
+    <>
       <style dangerouslySetInnerHTML={{ __html: `
         .prog-luxury-card { border-radius: 2px; position: relative; }
         .prog-beam-spin { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; z-index: 0; }
@@ -214,24 +210,25 @@ export default function ProgramsSection() {
 
         @media (hover: hover) and (pointer: fine) {
           .prog-luxury-card.is-hovered .prog-beam-spin::before { background: conic-gradient(from 0deg, transparent 70%, #C8960C 85%, #FFFFFF 95%, #C8960C 100%); animation: spin 3s linear infinite; }
-          
-          .programs-highlight-strip.is-hovered {
-            background: transparent !important; 
-            box-shadow: 0 12px 28px rgba(200, 150, 12, 0.12);
-          }
-          .programs-highlight-strip.is-hovered::before { 
-            opacity: 1;
-            background: conic-gradient(from 0deg, transparent 40%, #C8960C 55%, #FFFFFF 70%, #FFFFFF 94%, #C8960C 100%); 
-            animation: spinLaserTrack 2.5s linear infinite; 
-          }
+          .programs-highlight-strip.is-hovered { background: transparent !important; box-shadow: 0 12px 28px rgba(200, 150, 12, 0.12); }
+          .programs-highlight-strip.is-hovered::before { opacity: 1; background: conic-gradient(from 0deg, transparent 40%, #C8960C 55%, #FFFFFF 70%, #FFFFFF 94%, #C8960C 100%); animation: spinLaserTrack 2.5s linear infinite; }
         }
 
+        /* ── PROTECTED MOBILE-FIRST CONSTRAINTS SHEET ── */
         @media (max-width: 1023px) {
+          .programs-global-grid-layout-box { gap: 16px !important; margin-bottom: 40px !important; }
           .prog-luxury-card { border: 1px solid rgba(200, 150, 12, 0.15) !important; background: #0a0c0f !important; }
-          .programs-highlight-strip { 
-            border: 1px solid rgba(200, 150, 12, 0.45) !important; 
-            background: #0a0c0f !important; 
-            padding: 0 !important; 
+          
+          .programs-highlight-strip { border: 1px solid rgba(200, 150, 12, 0.45) !important; background: #0a0c0f !important; padding: 0 !important; }
+          
+          /* ── FIXED PADDING COLLISION: Enforced border-box sizing prevents mobile text cropping bugs ── */
+          .programs-inner-strip-flex-panel { 
+            padding: 32px 20px !important; 
+            gap: 24px !important; 
+            box-sizing: border-box !important; 
+            width: 100% !important; 
+            max-width: 100% !important;
+            overflow: hidden !important;
           }
         }
         
@@ -242,83 +239,79 @@ export default function ProgramsSection() {
         @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
       `}} />
 
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 clamp(20px, 4vw, 40px)", position: "relative", zIndex: 5 }}>
-        
-        {/* SECTION HEADER BLOCK */}
-        <div style={{ margin: "0 0 clamp(40px, 5vw, 64px) 0" }}>
-          <motion.p initial="hidden" whileInView="show" viewport={{ once: true, margin: "-40px" }} variants={up} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: ".3em", textTransform: "uppercase", color: "#C8960C", marginBottom: 10, fontWeight: 500 }}>
-            002 — What We Offer
-          </motion.p>
+      <section id="programs" style={{ position: "relative", background: "#080808", padding: "clamp(60px, 8vw, 120px) 0", overflow: "hidden" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 clamp(20px, 4vw, 40px)", position: "relative", zIndex: 5 }}>
           
-          <div style={{ fontFamily: "'DM Serif Display', serif", lineHeight: 1.05 }}>
-            <MLine delay={0} style={{ fontSize: "clamp(2.2rem, 4.5vw, 4.6rem)", fontWeight: 400, color: "#ffffff" }}>
-              Our <span style={{ background: "linear-gradient(135deg, #E8B84B, #C8960C)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", fontStyle: "italic" }}>Specialisations.</span>
-            </MLine>
-          </div>
-          
-          <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={liftUpSmall} style={{ width: 56, height: 1, background: "linear-gradient(90deg,#C8960C,transparent)", margin: "20px 0 16px 0" }} />
-          
-          <motion.p initial="hidden" whileInView="show" viewport={{ once: true }} variants={liftUpSmall} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14.5px", color: "rgba(245,240,232,0.6)", maxWidth: "540px", lineHeight: "1.7", margin: 0 }}>
-            Every musical course is built purposefully around the Trinity College London Grade Examination framework with strong foundational Staff Notation teaching initialized from lesson one.
-          </motion.p>
-        </div>
-
-        {/* Instruments Grid Container */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(clamp(280px, 30vw, 360px), 1fr))", gap: "20px", marginBottom: "clamp(48px, 6vw, 80px)" }}>
-          {INSTRUMENTS.map((prog, i) => (
-            <ProgramCard 
-              key={i} 
-              prog={prog} 
-              i={i} 
-              isOpenOnMobile={mobileActiveCard === i}
-              onToggleMobile={() => toggleMobileCard(i)}
-            />
-          ))}
-        </div>
-
-        {/* ── TRINITY SHOWCASE STRIP (Corrected state listeners to use setTrinityHover) ── */}
-        <motion.div 
-          onMouseEnter={() => !isTouchDevice && setTrinityHover(true)}
-          onMouseLeave={() => setTrinityHover(false)}
-          initial={{ opacity: 0, y: 32 }} 
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-40px" }} 
-          transition={{ duration: 0.72, ease: [0.25, 1, 0.32, 1] }}
-          className={`programs-highlight-strip ${trinityHover && !isTouchDevice ? "is-hovered" : ""}`} 
-        >
-          <div style={{ position: "relative", zIndex: 2, background: "#0a0c0f", padding: "clamp(24px, 5vw, 56px) clamp(24px, 4vw, 48px)", borderRadius: "3px", display: "flex", flexWrap: "wrap", gap: 36, alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+          {/* SECTION HEADER BLOCK */}
+          <div style={{ margin: "0 0 clamp(40px, 5vw, 64px) 0" }}>
+            <motion.p initial="hidden" whileInView="show" viewport={{ once: true, margin: "-40px" }} variants={up} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: ".3em", textTransform: "uppercase", color: "#C8960C", marginBottom: 10, fontWeight: 500 }}>
+              002 — What We Offer
+            </motion.p>
             
-            <div style={{ flex: 1, minWidth: 260 }}>
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: ".25em", textTransform: "uppercase", color: "#C8960C", fontWeight: 600, marginBottom: 12 }}>Our Specialisation</p>
-              
-              <div style={{ fontFamily: "'DM Serif Display', serif", marginBottom: 16 }}>
-                <MLine delay={0} style={{ fontSize: "clamp(1.6rem, 3.2vw, 2.6rem)", color: "#FFFFFF", fontWeight: 400, lineHeight: 1.15 }}>Trinity College London</MLine>
-                <MLine delay={0.12} style={{ fontSize: "clamp(1.6rem, 3.2vw, 2.6rem)", color: "#C8960C", fontWeight: 400, fontStyle: "italic", lineHeight: 1.15 }}>Grade Examinations</MLine>
-              </div>
+            <div style={{ fontFamily: "'DM Serif Display', serif", lineHeight: 1.05 }}>
+              <MLine delay={0} style={{ fontSize: "clamp(2.2rem, 4.5vw, 4.6rem)", fontWeight: 400, color: "#ffffff" }}>
+                Our <span style={{ background: "linear-gradient(135deg, #E8B84B, #C8960C)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", fontStyle: "italic" }}>Specialisations.</span>
+              </MLine>
+            </div>
+            
+            <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} variants={liftUpSmall} style={{ width: 56, height: 1, background: "linear-gradient(90deg,#C8960C,transparent)", margin: "20px 0 16px 0" }} />
+            
+            <motion.p initial="hidden" whileInView="show" viewport={{ once: true }} variants={liftUpSmall} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14.5px", color: "rgba(245,240,232,0.6)", maxWidth: "540px", lineHeight: "1.7", margin: 0 }}>
+              Every musical course is built purposefully around the Trinity College London Grade Examination framework with strong foundational Staff Notation teaching initialized from lesson one.
+            </motion.p>
+          </div>
 
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "rgba(245,240,232,0.6)", lineHeight: 1.8, maxWidth: 540, marginBottom: 24, textAlign: "justify" }}>
-                We specialise completely in teaching Staff Notation and systematically guiding students through the prestigious Trinity College London Grade Examination curriculum from absolute primary beginners in UKG to senior working corporate professionals. Our historical tracking credentials remain uniform: 100% Merit and Distinction results regardless of age milestones or initial coordination levels.
-              </p>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {["Grade 1–8", "ATCL / LTCL Diploma", "Validated Provider", "60+ Countries", "Staff Notation First", "All Ages"].map(t => (
-                  <span key={t} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 8.5, fontWeight: 700, letterSpacing: ".14em", padding: "4px 10px", border: "1px solid rgba(200,150,12,.25)", color: "#C8960C", textTransform: "uppercase" }}>{t}</span>
+          {/* Instruments Grid Container */}
+          <div className="programs-global-grid-layout-box" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(clamp(280px, 30vw, 360px), 1fr))", gap: "20px", marginBottom: "clamp(48px, 6vw, 80px)" }}>
+            {INSTRUMENTS.map((prog, i) => (
+              <ProgramCard key={i} prog={prog} i={i} isOpenOnMobile={mobileActiveCard === i} onToggleMobile={() => toggleMobileCard(i)} />
+            ))}
+          </div>
+
+          {/* ── TRINITY SHOWCASE STRIP ── */}
+          <motion.div 
+            onMouseEnter={() => !isTouchDevice && setTrinityHover(true)}
+            onMouseLeave={() => setTrinityHover(false)}
+            initial={{ opacity: 0, y: 32 }} 
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }} 
+            transition={{ duration: 0.72, ease: [0.25, 1, 0.32, 1] }}
+            className={`programs-highlight-strip ${trinityHover && !isTouchDevice ? "is-hovered" : ""}`} 
+          >
+            <div className="programs-inner-strip-flex-panel" style={{ position: "relative", zIndex: 2, background: "#0a0c0f", padding: "clamp(24px, 5vw, 56px) clamp(24px, 4vw, 48px)", borderRadius: "3px", display: "flex", flexWrap: "wrap", gap: 36, alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+              
+              <div style={{ flex: 1, minWidth: 260 }}>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: ".25em", textTransform: "uppercase", color: "#C8960C", fontWeight: 600, marginBottom: 12 }}>Our Specialisation</p>
+                
+                <div style={{ fontFamily: "'DM Serif Display', serif", marginBottom: 16 }}>
+                  <MLine delay={0} style={{ fontSize: "clamp(1.6rem, 3.2vw, 2.6rem)", color: "#FFFFFF", fontWeight: 400, lineHeight: 1.15 }}>Trinity College London</MLine>
+                  <MLine delay={0.12} style={{ fontSize: "clamp(1.6rem, 3.2vw, 2.6rem)", color: "#C8960C", fontWeight: 400, fontStyle: "italic", lineHeight: 1.15 }}>Grade Examinations</MLine>
+                </div>
+
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14px", color: "rgba(245,240,232,0.6)", lineHeight: 1.8, maxWidth: 540, marginBottom: 24, textAlign: "justify" }}>
+                  We specialise completely in teaching Staff Notation and systematically guiding students through the prestigious Trinity College London Grade Examination curriculum from absolute primary beginners in UKG to senior working corporate professionals. Our historical tracking credentials remain uniform: 100% Merit and Distinction results regardless of age milestones or initial coordination levels.
+                </p>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {["Grade 1–8", "ATCL / LTCL Diploma", "Validated Provider", "60+ Countries", "Staff Notation First", "All Ages"].map(t => (
+                    <span key={t} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 8.5, fontWeight: 700, letterSpacing: ".14em", padding: "4px 10px", border: "1px solid rgba(200,150,12,.25)", color: "#C8960C", textTransform: "uppercase" }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: 20, flexShrink: 0 }}>
+                {[["Students from", "UKG to Age 40+"], ["Results Tracked", "100% Merit & Distinction"], ["Methodology System", "Staff Notation First"]].map(([l, v], i) => (
+                  <div key={i}>
+                    <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, letterSpacing: ".18em", textTransform: "uppercase", color: "rgba(245,240,232,0.4)", marginBottom: 4, fontWeight: 600 }}>{l}</p>
+                    <p style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(1.15rem, 1.6vw, 1.35rem)", color: "#ffffff", margin: 0 }}>{v}</p>
+                  </div>
                 ))}
               </div>
-            </div>
-            
-            <div style={{ display: "flex", flexDirection: "column", gap: 20, flexShrink: 0 }}>
-              {[["Students from", "UKG to Age 40+"], ["Results Tracked", "100% Merit & Distinction"], ["Methodology System", "Staff Notation First"]].map(([l, v], i) => (
-                <div key={i}>
-                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, letterSpacing: ".18em", textTransform: "uppercase", color: "rgba(245,240,232,0.4)", marginBottom: 4, fontWeight: 600 }}>{l}</p>
-                  <p style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(1.15rem, 1.6vw, 1.35rem)", color: "#ffffff", margin: 0 }}>{v}</p>
-                </div>
-              ))}
-            </div>
 
-          </div>
-        </motion.div>
+            </div>
+          </motion.div>
 
-      </div>
-    </section>
+        </div>
+      </section>
+    </>
   );
 }

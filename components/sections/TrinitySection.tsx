@@ -5,7 +5,9 @@ import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
 import Image from "next/image";
 
-gsap.registerPlugin(ScrollTrigger);
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 // ── Shared Responsive Device Interaction Guard Hook ──
 function useTouchDeviceGuard() {
@@ -70,10 +72,13 @@ const stag: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.05
 
 function MLine({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties; }) {
   const ref = useRef<HTMLDivElement>(null);
+  const isTouch = useTouchDeviceGuard();
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    const trackingThreshold = isTouch ? "top 100%" : "top 92%";
 
     const ctx = gsap.context(() => {
       gsap.fromTo(el,
@@ -86,7 +91,7 @@ function MLine({ children, delay = 0, style }: { children: React.ReactNode; dela
           ease: "power2.out",
           scrollTrigger: {
             trigger: el,
-            start: "top 92%",
+            start: trackingThreshold,
             toggleActions: "play none none reset"
           }
         }
@@ -94,7 +99,7 @@ function MLine({ children, delay = 0, style }: { children: React.ReactNode; dela
     }, ref);
 
     return () => ctx.revert();
-  }, [delay]);
+  }, [delay, isTouch]);
 
   return (
     <div style={{ overflow: "hidden", paddingBottom: "0.06em", marginBottom: "-0.04em" }}>
@@ -136,6 +141,7 @@ function CollageTile({
         <div className="wall-vignette" style={{ zIndex: 2 }} />
 
         {img.featured && (
+          // ── FIXED TYPE ASSIGNMENT: Restored ternary operator completely ──
           <div style={{ position: "absolute", bottom: 24, left: 24, zIndex: 3, right: 24, opacity: hov && !isTouchDevice ? 0.15 : 1, transition: "opacity 0.4s" }}>
             <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 8.5, fontWeight: 700, letterSpacing: "0.15em", color: "#C8960C", background: "rgba(8,8,8,0.85)", padding: "4px 10px", textTransform: "uppercase", borderRadius: "1px" }}>{img.label}</span>
             <h4 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(1.2rem, 1.8vw, 1.5rem)", color: "#ffffff", margin: "6px 0 0 0", fontWeight: 400 }}>{img.title}</h4>
@@ -160,7 +166,7 @@ function CollageTile({
 function ReviewCard({ 
   r, globalId, activeMobileId, setActiveMobileId, setIsMarqueePaused
 }: { 
-  r: typeof REVIEWS[0]; globalId: string; activeMobileId: string | null; setActiveMobileId: (id: string | null) => void; setIsMarqueePaused: (p: boolean) => void;
+  r: typeof REVIEWS[0]; globalId: string; activeMobileId: string | null; setActiveMobileId: (id: string | null) => void; setIsMarqueePaused: (p: boolean) => void; 
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -224,7 +230,9 @@ function ReviewCard({
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14.5px", color: "rgba(245,240,232,0.65)", lineHeight: 1.8, marginBottom: 28, textAlign: "justify" }}>{r.text}</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 20 }}>
-          <div style={{ width: 38, height: 34, background: "linear-gradient(135deg, #C8960C, rgba(200,150,12,0.4))", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Serif Display', serif", fontSize: 15, fontWeight: 700, color: "#080808", borderRadius: "1px" }}>{r.name[0]}</div>
+          <div style={{ width: "40px", height: "40px", background: "linear-gradient(135deg, #C8960C, rgba(200,150,12,0.4))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "'DM Serif Display', serif", fontSize: 16, fontWeight: 700, color: "#080808", borderRadius: "2px" }}>
+            {r.name[0]}
+          </div>
           <div>
             <p className="sk-group-title" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13.5, letterSpacing: "0.12em", color: "#ffffff", textTransform: "uppercase", fontWeight: 700, margin: 0 }}>{r.name}</p>
             <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "rgba(245,240,232,0.4)", margin: "4px 0 0 0" }}>{r.role}</p>
@@ -247,15 +255,8 @@ export default function TrinitySection() {
   const [isGalleryExpanded, setIsGalleryExpanded] = useState(false);
   const visibleAssets = isTouchDevice && !isGalleryExpanded ? ALL_ASSETS.slice(0, 6) : ALL_ASSETS;
 
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development") return;
-    const block = (e: any) => e.preventDefault();
-    window.addEventListener("keydown", (e) => (e.key === "F12" || (e.ctrlKey && e.shiftKey && ["I","C","J"].includes(e.key)) || (e.ctrlKey && e.key === "u")) && block(e));
-    window.addEventListener("contextmenu", block);
-  }, []);
-
   return (
-    <section id="gallery" onClick={() => isTouchDevice && (setActiveMobileId(null), setIsMarqueePaused(false))} style={{ position: "relative", background: "#080808", padding: "clamp(60px, 8vw, 120px) 0", overflow: "hidden" }}>
+    <section id="gallery" className="gallery-section-global-root" onClick={() => isTouchDevice && (setActiveMobileId(null), setIsMarqueePaused(false))} style={{ position: "relative", background: "#080808", padding: "clamp(60px, 8vw, 120px) 0", overflow: "hidden" }}>
       
       <style dangerouslySetInnerHTML={{ __html: `
         .sk-card { position: relative; }
@@ -263,7 +264,6 @@ export default function TrinitySection() {
         .sk-card::after { content: ''; position: absolute; inset: 1.5px; background: #0a0c0f; border-radius: 3px; z-index: 2; }
         .sk-card-content { position: relative; z-index: 3; }
         
-        /* ── CALIBRATED LOW-PROFILE BALANCED DEPTH DROPSHADOW MATRIX ── */
         .sk-card.is-hovered { border-color: transparent !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 12px rgba(200, 150, 12, 0.06) !important; }
         .sk-card.is-hovered::before { opacity: 1; animation-play-state: running; }
         
@@ -271,7 +271,7 @@ export default function TrinitySection() {
           position: relative; overflow: hidden; background: transparent; border: 1px solid #ffffff; color: white; padding: 18px 0; font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; line-height: 1; cursor: pointer; transition: border-color 0.4s ease, box-shadow 0.4s ease; border-radius: 2px; text-decoration: none; width: 340px; max-width: 100%; text-align: center; will-change: transform; backface-visibility: hidden; -webkit-backface-visibility: hidden;
         }
         .trinity-maps-btn::before { content: ''; position: absolute; top: 50%; left: 50%; width: 300%; height: 300%; background: conic-gradient(from 0deg, transparent 60%, #C8960C 75%, #FFFFFF 85%, #C8960C 95%, transparent 100%); transform: translate(-50%, -50%) rotate(0deg); animation: rotateBorder 2.5s linear infinite; opacity: 0; transition: opacity 0.4s ease; z-index: 0; }
-        .trinity-btn-inner { position: absolute; inset: 0; background-image: linear-gradient(to right, #C8960C 50%, #080808 50%); background-size: 200% 100%; background-position: 100% 0; transition: background-position 0.4s cubic-bezier(0.25, 1, 0.5, 1); z-index: 1; }
+        .trinity-btn-inner { position: absolute; inset: 0; background-image: linear-gradient(to right, #C8960C 50%, #080808 50%); background-size: 200% 100%; background-position: 100% 0; transition: background-position 0.4s cubic-bezier(0.25, 1, 0.5, 1); z-index: 1; border-radius: 1px; }
         .trinity-btn-click-bg { position: absolute; inset: 0; background: #C8960C; z-index: 2; transform: scaleX(0); transform-origin: left; transition: transform 0.15s ease-out; }
         .trinity-btn-text { position: relative; z-index: 3; transition: color 0.4s ease; padding: 0 16px; color: #ffffff; }
         
@@ -302,20 +302,41 @@ export default function TrinitySection() {
           .collage-frame-node.gutter-flow-origin { border-color: rgba(200, 150, 12, 0.6); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important; z-index: 2; }
         }
 
-        @media (max-width: 1023px) { 
-          .collage-frame-node { border: 1px solid rgba(200, 150, 12, 0.15) !important; } 
-        }
-        
-        .wall-vignette { position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,8,8,0.92) 0%, rgba(8,8,8,0.15) 50%, transparent 100%); pointer-events: none; z-index: 2; transition: opacity 0.4s; }
+        .wall-vignette { position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,8,8,0.92) 0%, rgba(8,8,8,0.15) 50%, transparent 100%) !important; pointer-events: none; z-index: 2; transition: opacity 0.4s; }
         .collage-frame-node:hover .wall-vignette { opacity: 0.4; }
 
         @keyframes infiniteMarqueeRow { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
         @keyframes rotateBorder { 100% { transform: rotate(360deg); } }
 
-        @media (max-width: 1024px) { .art-wall-collage { grid-template-columns: repeat(3, 1fr) !important; } }
-        @media (max-width: 768px) { .art-wall-collage { grid-template-columns: repeat(2, 1fr) !important; .col-span-2 { grid-column: span 2 !important; } } }
-        @media (max-width: 480px) { .art-wall-collage { grid-template-columns: 1fr !important; .col-span-2 { grid-column: span 1 !important; } } }
+        @media (max-width: 1024px) { 
+          .art-wall-collage { grid-template-columns: repeat(3, 1fr) !important; } 
+        }
+        @media (max-width: 768px) { 
+          .art-wall-collage { grid-template-columns: repeat(2, 1fr) !important; .col-span-2 { grid-column: span 2 !important; } } 
+        }
         
+        @media (max-width: 1023px) { 
+          /* ── RESTORED SPACE: Replaced 0px block with beautiful padding properties to cushion the links ── */
+          .gallery-section-global-root { padding-bottom: 60px !important; }
+          .collage-frame-node { border: 1px solid rgba(200, 150, 12, 0.15) !important; } 
+          
+          .gallery-responsive-badge-row { display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; gap: 8px !important; padding: 14px 20px !important; width: 100% !important; max-width: 310px !important; margin: 16px auto 0 auto !important; box-sizing: border-box !important; }
+          .gallery-responsive-badge-text { font-size: 9.5px !important; line-height: 1.4 !important; text-align: center !important; letter-spacing: 0.1em !important; }
+          
+          .gallery-meta-stack-wrapper { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; margin-top: 16px !important; }
+          .gallery-mobile-break { display: block !important; }
+          .gallery-meta-rating-text { font-size: 13.5px !important; line-height: 1.5 !important; color: rgba(245,240,232,0.6) !important; font-weight: 500 !important; }
+          .gallery-meta-stars { font-size: 15px !important; margin-top: 0px !important; letter-spacing: 2px !important; }
+          .gallery-review-subtitle { font-size: 11px !important; line-height: 1.4 !important; max-width: 240px !important; margin-bottom: 12px !important; }
+
+          .gallery-responsive-maps-flex-bar { display: flex !important; flex-direction: column !important; align-items: center !important; gap: 12px !important; margin-top: 32px !important; margin-bottom: 48px !important; width: 100% !important; max-width: 310px !important; margin-left: auto !important; margin-right: auto !important; }
+          .trinity-maps-btn { padding: 15px 0 !important; font-size: 10.5px !important; }
+        }
+        
+        .gallery-mobile-break { display: none; }
+        .gallery-meta-stack-wrapper { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+
+        @media (max-width: 480px) { .art-wall-collage { grid-template-columns: 1fr !important; .col-span-2 { grid-column: span 1 !important; } } }
         .col-span-1 { grid-column: span 1; } .col-span-2 { grid-column: span 2; } .row-span-1 { grid-row: span 1; } .row-span-2 { grid-row: span 2; }
       `}} />
 
@@ -328,9 +349,10 @@ export default function TrinitySection() {
             <MLine delay={0} style={{ fontSize: "clamp(2.2rem, 4.5vw, 4.6rem)", fontWeight: 400, color: "#ffffff" }}>A Record of <span style={{ color: "#C8960C" }}>Excellence.</span></MLine>
           </div>
           <motion.div style={{ width: 56, height: 1, background: "linear-gradient(90deg, transparent, #C8960C, transparent)", margin: "20px auto 16px" }} />
-          <motion.div style={{ display: "inline-flex", alignItems: "center", gap: 10, border: "1px solid rgba(200,150,12,0.2)", padding: "10px 24px", background: "rgba(200,150,12,0.04)" }}>
+          
+          <motion.div className="gallery-responsive-badge-row" style={{ display: "inline-flex", alignItems: "center", gap: 10, border: "1px solid rgba(200,150,12,0.2)", padding: "10px 24px", background: "rgba(200,150,12,0.04)" }}>
             <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: "#C8960C" }}>★★★★★</span>
-            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: ".12em", color: "#ffffff", textTransform: "uppercase", fontWeight: 600 }}>100% Merit & Distinction · Every Exam · Every Year</span>
+            <span className="gallery-responsive-badge-text" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: ".12em", color: "#ffffff", textTransform: "uppercase", fontWeight: 600 }}>100% Merit & Distinction · Every Exam · Every Year</span>
           </motion.div>
         </motion.div>
 
@@ -352,7 +374,7 @@ export default function TrinitySection() {
 
         {/* INTERACTIVE DUAL-STATE TOGGLE CONTROLLER FOR PHONES */}
         {isTouchDevice && (
-          <div style={{ display: "flex", justifyContent: "center", marginTop: "24px", marginBottom: "60px" }}>
+          <div style={{ display: "flex", justifyContent: "center", marginTop: "24px", marginBottom: "0px" }}>
             {!isGalleryExpanded ? (
               <button 
                 onClick={() => setIsGalleryExpanded(true)}
@@ -375,17 +397,27 @@ export default function TrinitySection() {
         )}
 
         {/* REVIEWS SECTION HEADER BLOCKS */}
-        <div style={{ marginBottom: 36, marginTop: isTouchDevice && isGalleryExpanded ? "60px" : "0px" }}>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: ".3em", textTransform: "uppercase", color: "#C8960C", marginBottom: 10, fontWeight: 500 }}>Real Stories · Google & Justdial Reviews</p>
+        <div className="gallery-responsive-review-header-box" style={{ marginBottom: 36, marginTop: "clamp(60px, 8vw, 96px)" }}>
+          
+          <p className="gallery-review-subtitle" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: ".3em", textTransform: "uppercase", color: "#C8960C", marginBottom: 10, fontWeight: 500 }}>
+            Real Stories · Google & Justdial Reviews
+          </p>
+          
           <div style={{ fontFamily: "'DM Serif Display', serif", lineHeight: 1.05 }}>
             <MLine delay={0} style={{ fontSize: "clamp(1.6rem, 3.2vw, 2.6rem)", fontWeight: 400, fontStyle: "italic", color: "#ffffff" }}>
               What Our <span style={{ background: "linear-gradient(135deg,#E8B84B,#C8960C)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>Students Say</span>
             </MLine>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
-            <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: "#C8960C" }}>★★★★★</span>
-            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "12.5px", color: "rgba(245,240,232,0.5)", fontWeight: 500 }}>4.9 · 312 Total Ratings (73 Google & 239 Justdial)</span>
+          
+          <div className="gallery-meta-stack-wrapper">
+            <span className="gallery-meta-rating-text" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "12.5px", color: "rgba(245,240,232,0.5)", fontWeight: 500 }}>
+              4.9 · 312 Total Ratings <span className="gallery-mobile-break"><br /></span>(73 Google & 239 Justdial)
+            </span>
+            <span className="gallery-meta-stars" style={{ fontFamily: "'DM Serif Display', serif", fontSize: 18, color: "#C8960C" }}>
+              ★★★★★
+            </span>
           </div>
+
         </div>
 
         {/* INFINITE MARQUEE CAROUSEL CANVAS */}
@@ -400,8 +432,8 @@ export default function TrinitySection() {
           </div>
         </div>
 
-        {/* RE-CENTERED INTERACTIVE MAP BUTTON LINKS */}
-        <div style={{ display: "flex", justifyContent: "center", gap: "20px", flexWrap: "wrap", marginTop: "48px" }}>
+        {/* INTERACTIVE MAP BUTTON LINKS */}
+        <div className="gallery-responsive-maps-flex-bar">
           <a href="https://jsdl.in/DT-28Q6IUA6YMQ" target="_blank" rel="noopener noreferrer" className="trinity-maps-btn">
             <div className="trinity-btn-click-bg"></div><div className="trinity-btn-inner"></div>
             <span className="trinity-btn-text">View All 239 Reviews on Justdial ↗</span>
@@ -417,7 +449,7 @@ export default function TrinitySection() {
       {/* LIGHTBOX MODAL OVERLAY */}
       <AnimatePresence>
         {lightboxImg && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setLightboxImg(null)} style={{ position: "fixed", inset: 0, background: "rgba(4,4,4,0.97)", backdropFilter: "blur(20px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", userSelect: "none" }} onContextMenu={(e) => e.preventDefault()}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setLightboxImg(null)} style={{ position: "fixed", inset: 0, background: "rgba(4,4,4,0.97)", backdropFilter: "blur(20px)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", userSelect: "none" }}>
             <button onClick={() => setLightboxImg(null)} style={{ position: "absolute", top: 24, right: 24, background: "transparent", border: "none", color: "rgba(255,255,255,0.5)", fontSize: "24px", cursor: "pointer", transition: "color 0.3s", zIndex: 10000 }} onMouseEnter={(e) => (e.currentTarget.style.color = "#C8960C")} onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.5)")}>✕</button>
             <motion.div initial={{ scale: 0.97, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.97, y: 12 }} transition={{ type: "spring", stiffness: 280, damping: 28 }} style={{ position: "relative", width: "100%", height: "100%", maxWidth: "1100px", maxHeight: "82vh" }} onClick={(e) => e.stopPropagation()}>
               <Image src={lightboxImg} alt="Enlarged View" fill sizes="(max-width: 1200px) 100vw" style={{ objectFit: "contain" }} unoptimized draggable={false} />

@@ -4,7 +4,9 @@ import { motion, Variants, AnimatePresence, useMotionValue, useSpring } from "fr
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
 
-gsap.registerPlugin(ScrollTrigger);
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 interface Form { name: string; phone: string; email: string; instrument: string; age: string; message: string; }
 const EMPTY: Form = { name: "", phone: "", email: "", instrument: "", age: "", message: "" };
@@ -38,12 +40,16 @@ const up: Variants = {
 
 const stag: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 
+// ── Smooth Performance-Grade Text Mask Reveal Component ──
 function MLine({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties; }) {
   const ref = useRef<HTMLDivElement>(null);
+  const isTouch = useTouchDeviceGuard();
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    const trackingThreshold = isTouch ? "top 100%" : "top 92%";
 
     const ctx = gsap.context(() => {
       gsap.fromTo(el,
@@ -56,7 +62,7 @@ function MLine({ children, delay = 0, style }: { children: React.ReactNode; dela
           ease: "power2.out",
           scrollTrigger: {
             trigger: el,
-            start: "top 92%",
+            start: trackingThreshold,
             toggleActions: "play none none reset"
           }
         }
@@ -64,7 +70,7 @@ function MLine({ children, delay = 0, style }: { children: React.ReactNode; dela
     }, ref);
 
     return () => ctx.revert();
-  }, [delay]);
+  }, [delay, isTouch]);
 
   return (
     <div style={{ overflow: "hidden", paddingBottom: "0.06em", marginBottom: "-0.04em" }}>
@@ -138,14 +144,8 @@ function SecureSubmitButton({ children, onClick, sent }: { children: React.React
   );
 }
 
-function ContactStripCard({ 
-  card, i, activeIndex, setActiveIndex, mobileActiveIndex, setMobileActiveIndex 
-}: { 
-  card: any; i: number; activeIndex: number | null; setActiveIndex: (index: number | null) => void;
-  mobileActiveIndex: number | null; setMobileActiveIndex: (index: number | null) => void;
-}) {
+function ContactStripCard({ card, i, activeIndex, setActiveIndex, mobileActiveIndex, setMobileActiveIndex }: { card: any; i: number; activeIndex: number | null; setActiveIndex: (index: number | null) => void; mobileActiveIndex: number | null; setMobileActiveIndex: (index: number | null) => void; }) {
   const isTouchDevice = useTouchDeviceGuard();
-  
   const isHovered = activeIndex === i && !isTouchDevice;
   const isMobileActive = mobileActiveIndex === i && isTouchDevice;
   const isCardActive = isTouchDevice ? isMobileActive : isHovered;
@@ -161,7 +161,6 @@ function ContactStripCard({
       className={`contact-premium-card contact-strip-item-node ${isCardActive ? "is-hovering" : ""}`}
       style={{
         padding: "1.5px", textDecoration: "none", display: "flex", flexDirection: "column",
-        // Unified Cross-Viewport Accordion Layout Flow
         flex: isCardActive ? 1.38 : 1,
         zIndex: isCardActive ? 10 : 1,
         transition: "flex 0.48s cubic-bezier(0.25, 1, 0.32, 1), border-color 0.4s ease"
@@ -175,15 +174,9 @@ function ContactStripCard({
           </svg>
         </div>
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "#ffffff", fontWeight: 700, margin: "0 0 1px 0" }}>
-            {card.label}
-          </p>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "rgba(245,240,232,0.35)", margin: "0 0 3px 0", fontWeight: 500 }}>
-            {card.sub}
-          </p>
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13.5px", fontWeight: 700, color: card.highlight, margin: 0, letterSpacing: "0.01em" }}>
-            {card.value}
-          </p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "#ffffff", fontWeight: 700, margin: "0 0 1px 0" }}>{card.label}</p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "rgba(245,240,232,0.35)", margin: "0 0 3px 0", fontWeight: 500 }}>{card.sub}</p>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13.5px", fontWeight: 700, color: card.highlight, margin: 0, letterSpacing: "0.01em" }}>{card.value}</p>
         </div>
       </div>
     </motion.a>
@@ -194,8 +187,6 @@ export default function ContactSection() {
   const [form, setForm] = useState<Form>(EMPTY);
   const [sent, setSent] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
-  
-  // Custom Inline Red Validation Notice State Engine
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const [activeStripIndex, setActiveStripIndex] = useState<number | null>(null);
@@ -209,20 +200,17 @@ export default function ContactSection() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => setForm(prev => ({ ...prev, [key]: e.target.value }));
 
-  const executeFormSubmit = () => {
-    // ── INLINE PROFESSIONAL ERROR ROUTIONS ──
+  const executeFormSubmit = async () => {
     if (!form.name.trim()) {
       setValidationError("To assist you properly, please provide your full name before submitting your inquiry.");
       return;
     }
-
     const uniformPhone = form.phone.replace(/\s+/g, "");
     const domesticIndianPhoneRegex = /^[6-9]\d{9}$/;
     if (!domesticIndianPhoneRegex.test(uniformPhone)) {
       setValidationError("Please ensure your contact number contains a valid 10-digit Indian mobile line so our director can reach you safely.");
       return;
     }
-
     if (form.email.trim()) {
       const architecturalEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!architecturalEmailRegex.test(form.email.trim())) {
@@ -230,12 +218,10 @@ export default function ContactSection() {
         return;
       }
     }
-
     if (!form.instrument) {
       setValidationError("Please select your preferred instrument or program area of interest.");
       return;
     }
-    
     if (!consentChecked) {
       setValidationError("Kindly review and accept the verification checkbox to authorize our communication channels.");
       return;
@@ -260,7 +246,29 @@ ${form.message.trim() ? form.message.trim() : "Curriculum parameters exploration
 ----------------------------------
 Forwarded straight via General Contact Terminal Node.`;
     
-    window.open(`https://wa.me/919885297005?text=${encodeURIComponent(refinedMonospaceText)}`, "_blank");
+    const whatsappWindow = window.open(`https://wa.me/919885297005?text=${encodeURIComponent(refinedMonospaceText)}`, "_blank");
+
+    try {
+      const databaseMessageSlip = `Age Group: ${form.age || "Not Specified"}${form.message.trim() ? ` | Message: ${form.message.trim()}` : ""}`;
+
+      await fetch("/api/enroll", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          source: "General Contact Desk",
+          name: form.name.trim(),
+          phone: uniformPhone,
+          email: form.email.trim() || "Not Provided",
+          instrument: form.instrument,
+          message: databaseMessageSlip
+        }),
+      });
+    } catch (error) {
+      console.error("Sheets inquiry tracking error caught:", error);
+    }
+
     setSent(true);
     setForm(EMPTY);
     setConsentChecked(false);
@@ -298,11 +306,11 @@ Forwarded straight via General Contact Terminal Node.`;
         .contact-submit-engine:active .contact-btn-slider { background-position: 0 0 !important; }
         .contact-submit-engine:active .contact-btn-text-node { color: #080808 !important; }
 
-        @keyframes spinGlowContact { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
-        
         @media (max-width: 1023px) { 
           .contact-split-row { grid-template-columns: 1fr !important; gap: 24px !important; } 
           .contact-premium-card { border: 1px solid rgba(200, 150, 12, 0.15) !important; background: #0a0c0f !important; box-shadow: none !important; }
+          .contact-cards-stack-wrapper { height: auto !important; gap: 12px !important; }
+          .contact-privacy-shield-container { margin-top: 24px !important; }
         }
       `}} />
 
@@ -314,32 +322,23 @@ Forwarded straight via General Contact Terminal Node.`;
             004 — Get In Touch
           </motion.p>
           <div style={{ fontFamily: "'DM Serif Display', serif", lineHeight: 1.05, marginBottom: 14 }}>
-            <MLine delay={0} style={{ fontSize: "clamp(2.2rem, 4.5vw, 4.6rem)", fontWeight: 400, color: "#ffffff" }}>
+            <motion.h2 variants={up} style={{ fontSize: "clamp(2.2rem, 4.5vw, 4.6rem)", fontWeight: 400, color: "#ffffff", margin: 0 }}>
               Begin Your <span style={{ fontStyle: "italic", background: "linear-gradient(135deg,#E8B84B,#C8960C)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>Journey.</span>
-            </MLine>
+            </motion.h2>
           </div>
           <motion.p variants={up} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14.5px", color: "rgba(245,240,232,0.55)", maxWidth: "500px", margin: "0 auto", lineHeight: "1.7" }}>
             Fill in your details to open an immediate WhatsApp conversation — fast, fully personal, and entirely secure.
           </motion.p>
         </motion.div>
 
-        {/* ── BALANCED EQUAL-HEIGHT LAYOUT GRID CANVAS ── */}
-        <div 
-          ref={gridContainerRef}
-          style={{ display: "grid", gridTemplateColumns: "1.12fr 0.88fr", gap: "24px", alignItems: "stretch", marginBottom: "20px" }} 
-          className="contact-split-row"
-        >
+        {/* BALANCED EQUAL-HEIGHT LAYOUT GRID CANVAS */}
+        <div ref={gridContainerRef} style={{ display: "grid", gridTemplateColumns: "1.12fr 0.88fr", gap: "24px", alignItems: "stretch", marginBottom: "20px" }} className="contact-split-row">
+          
           {/* LEFT PANEL: FORM INTERFACE */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <ContactInteractiveCard>
-              <div 
-                onMouseEnter={() => !isTouchDevice && setActiveStripIndex(99)}
-                onMouseLeave={() => !isTouchDevice && setActiveStripIndex(null)}
-                style={{ padding: "clamp(32px, 4vw, 44px) clamp(20px, 3.5vw, 36px)" }}
-              >
-                <h3 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "22px", color: "#ffffff", fontStyle: "italic", fontWeight: 400, margin: "0 0 24px 0", letterSpacing: "0.01em", textAlign: "center" }}>
-                  Send an Inquiry
-                </h3>
+              <div onMouseEnter={() => !isTouchDevice && setActiveStripIndex(99)} onMouseLeave={() => !isTouchDevice && setActiveStripIndex(null)} style={{ padding: "clamp(32px, 4vw, 44px) clamp(20px, 3.5vw, 36px)" }}>
+                <h3 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "22px", color: "#ffffff", fontStyle: "italic", fontWeight: 400, margin: "0 0 24px 0", letterSpacing: "0.01em", textAlign: "center" }}>Send an Inquiry</h3>
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginBottom: "16px" }}>
                   <div>
@@ -384,10 +383,7 @@ Forwarded straight via General Contact Terminal Node.`;
                 </div>
 
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", marginBottom: "20px" }}>
-                  <input 
-                    type="checkbox" id="legalPrivacyConsentNode" checked={consentChecked} onChange={(e) => setConsentChecked(e.target.checked)}
-                    style={{ accentColor: "#C8960C", marginTop: "3px", width: "14px", height: "14px", cursor: "pointer", flexShrink: 0 }} 
-                  />
+                  <input type="checkbox" id="legalPrivacyConsentNode" checked={consentChecked} onChange={(e) => setConsentChecked(e.target.checked)} style={{ accentColor: "#C8960C", marginTop: "3px", width: "14px", height: "14px", cursor: "pointer", flexShrink: 0 }} />
                   <label htmlFor="legalPrivacyConsentNode" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "11.5px", color: "rgba(245,240,232,0.45)", lineHeight: "1.5", cursor: "pointer", userSelect: "none" }}>
                     I authorize the processing of my basic profile parameters to initialize communication lines according to the{" "}
                     <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: "#C8960C", textDecoration: "none", fontWeight: 600 }}>Privacy Policy</a> and {" "}
@@ -395,20 +391,11 @@ Forwarded straight via General Contact Terminal Node.`;
                   </label>
                 </div>
 
-                {/* ── INLINE PROFESSIONAL HIGH-CONTRAST VALIDATION ALERT BANNER ── */}
                 <AnimatePresence mode="wait">
                   {validationError && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0, y: 8 }}
-                      animate={{ opacity: 1, height: "auto", y: 0 }}
-                      exit={{ opacity: 0, height: 0, y: 8 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
-                      style={{ overflow: "hidden", marginBottom: "20px" }}
-                    >
+                    <motion.div initial={{ opacity: 0, height: 0, y: 8 }} animate={{ opacity: 1, height: "auto", y: 0 }} exit={{ opacity: 0, height: 0, y: 8 }} transition={{ duration: 0.3, ease: "easeOut" }} style={{ overflow: "hidden", marginBottom: "20px" }}>
                       <div style={{ background: "rgba(234, 67, 53, 0.05)", borderLeft: "3px solid #EA4335", padding: "12px 16px", borderRadius: "1px" }}>
-                        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", color: "#EA4335", lineHeight: "1.5", margin: 0, fontWeight: 500 }}>
-                          {validationError}
-                        </p>
+                        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", color: "#EA4335", lineHeight: "1.5", margin: 0, fontWeight: 500 }}>{validationError}</p>
                       </div>
                     </motion.div>
                   )}
@@ -421,14 +408,10 @@ Forwarded straight via General Contact Terminal Node.`;
             </ContactInteractiveCard>
           </div>
 
-          {/* RIGHT SIDE COLUMN: AUTO-LAYOUT SLIPS SLIDER SHEET ACCORDION WORKSPACE */}
-          <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "12px", width: "100%", height: isTouchDevice ? "480px" : "100%" }}>
+          {/* RIGHT SIDE PANEL: CONNECT STACK STRIPS ACCORDION CONTAINER */}
+          <div className="contact-cards-stack-wrapper" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "12px", width: "100%", height: isTouchDevice ? "auto" : "100%" }}>
             {CONTACT_CARDS_DATA.map((card, i) => (
-              <ContactStripCard 
-                key={i} card={card} i={i} 
-                activeIndex={activeStripIndex} setActiveIndex={setActiveStripIndex} 
-                mobileActiveIndex={mobileActiveStrip} setMobileActiveIndex={setMobileActiveStrip}
-              />
+              <ContactStripCard key={i} card={card} i={i} activeIndex={activeStripIndex} setActiveIndex={setActiveStripIndex} mobileActiveIndex={mobileActiveStrip} setMobileActiveIndex={setMobileActiveStrip} />
             ))}
           </div>
         </div>
@@ -437,7 +420,7 @@ Forwarded straight via General Contact Terminal Node.`;
         <motion.div 
           initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: [0.25, 1, 0.32, 1] }}
           onMouseEnter={() => !isTouchDevice && setIsPrivacyHovered(true)} onMouseLeave={() => setIsPrivacyHovered(false)}
-          className={`contact-premium-card ${isPrivacyHovered && !isTouchDevice ? "is-hovering" : ""}`}
+          className={`contact-premium-card contact-privacy-shield-container ${isPrivacyHovered && !isTouchDevice ? "is-hovering" : ""}`}
           style={{ width: "100%", padding: "1.5px" }}
         >
           <div className="contact-beam-spin"></div>
@@ -447,7 +430,7 @@ Forwarded straight via General Contact Terminal Node.`;
               <path d="M4.5 9V5.5a4.5 4.5 0 019 0V9" />
             </svg>
             <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "12px", color: "rgba(245,240,232,0.45)", lineHeight: "1.5", margin: 0 }}>
-              <strong style={{ color: "#ffffff", fontWeight: 600 }}>Privacy Shield Secure Node:</strong> Fields route over secure parameter channels straight to the director's device playhead. Absolutely zero information caching or student log replication occurs on external web data servers.
+              <strong style={{ color: "#ffffff", fontWeight: 600 }}>Privacy Shield Secure Node:</strong> Submission triggers an automated record entry loop directly into the academy spreadsheet registry prior to routing to the outbound communication API link. Absolutely no unencrypted profiling caches or external third-party data broker storage synchronization occurs.
             </p>
           </div>
         </motion.div>

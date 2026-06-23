@@ -4,7 +4,9 @@ import { motion, Variants, useMotionValue, useSpring, useTransform } from "frame
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
 
-gsap.registerPlugin(ScrollTrigger);
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 // ── Shared Responsive Device Interaction Guard Hook ──
 function useTouchDeviceGuard() {
@@ -30,10 +32,14 @@ const stag: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.08
 /* ── Masked Reveal Row Component for Smooth Text Slide-Up ── */
 function MLine({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: React.CSSProperties; }) {
   const ref = useRef<HTMLDivElement>(null);
+  const isTouch = useTouchDeviceGuard();
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    // FIX DELAYED REVEALS: Force instant calculation thresholds on mobile viewport entries
+    const mobileTriggerStart = isTouch ? "top 100%" : "top 92%";
 
     const ctx = gsap.context(() => {
       gsap.fromTo(el,
@@ -43,10 +49,10 @@ function MLine({ children, delay = 0, style }: { children: React.ReactNode; dela
           opacity: 1,
           duration: 0.85,
           delay: delay,
-          ease: "power2.out", // Fixed: Corrected array format to native GSAP string easing
+          ease: "power2.out", 
           scrollTrigger: {
             trigger: el,
-            start: "top 92%",
+            start: mobileTriggerStart,
             toggleActions: "play none none reset"
           }
         }
@@ -54,7 +60,7 @@ function MLine({ children, delay = 0, style }: { children: React.ReactNode; dela
     }, ref);
 
     return () => ctx.revert();
-  }, [delay]);
+  }, [delay, isTouch]);
 
   return (
     <div style={{ overflow: "hidden", paddingBottom: "0.06em", marginBottom: "-0.04em", display: "block" }}>
@@ -223,7 +229,6 @@ export default function CTASection() {
   return (
     <section className="sec pt-section pb-section" style={{ background: "#080808", position: "relative", overflow: "hidden", padding: "85px 0" }}>
       
-      {/* ── FLATTENED NON-NESTED COMPILATION SAFE CSS HOOKS ── */}
       <style dangerouslySetInnerHTML={{ __html: `
         .cta-master-btn, .cta-master-btn *, .cta-master-btn *::before { box-sizing: border-box !important; }
 
@@ -272,7 +277,7 @@ export default function CTASection() {
       
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 clamp(20px, 4vw, 40px)", position: "relative", zIndex: 5, textAlign: "center" }}>
         
-        <motion.div variants={stag} initial="hidden" whileInView="show" viewport={{ once: false, margin: "-40px" }}>
+        <motion.div  variants={stag} initial="hidden" whileInView="show" viewport={{ once: false, margin: "-40px" }}>
           
           <motion.p variants={up} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: ".3em", textTransform: "uppercase", color: "#C8960C", marginBottom: 16, fontWeight: 500 }}>
             The Right Way to Learn Music

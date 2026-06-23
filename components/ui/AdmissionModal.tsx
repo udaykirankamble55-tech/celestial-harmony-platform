@@ -111,9 +111,33 @@ export default function AdmissionModal() {
     setStep(s => s + 1);
   };
 
-  const fireOutboundWhatsAppDispatch = () => {
+  const fireOutboundWhatsAppDispatch = async () => {
     const stringRefID = "ADM-" + Date.now().toString(36).toUpperCase();
     
+    // Package up metadata cleanly for the raw intake message database column
+    const databaseMessageSlip = `Grade Milestone: ${form.grade}${form.parent.trim() ? ` | Parent: ${form.parent.trim()}` : ""}${form.dob ? ` | DOB: ${form.dob.split("-").reverse().join("/")}` : ""}`;
+
+    try {
+      // Background push to our secure logger endpoint 
+      await fetch("/api/enroll", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          source: "Website Admission Modal",
+          name: form.name.trim(),
+          phone: form.phone.replace(/\s+/g, ""),
+          email: form.email.trim() || "Not Provided",
+          instrument: form.instrument,
+          message: databaseMessageSlip
+        }),
+      });
+    } catch (error) {
+      // Fail-safe fallback logic to prevent UI lockup if the server drops offline
+      console.error("Sheets tracking failure pipeline exception caught:", error);
+    }
+
     const compiledMonospaceSlip = 
 `CELESTIAL HARMONY ACADEMY OF MUSIC
 OFFICIAL DIGITAL ADMISSION REGISTRATION
@@ -206,8 +230,7 @@ Registration compiled via Secure Admission playhead panel loops.`;
                   <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: "#C8960C", margin: "0 0 4px 0", fontWeight: 600 }}>Celestial Harmony</p>
                   <h3 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "22px", color: "#ffffff", fontWeight: 400, margin: 0 }}>Digital Admission</h3>
                 </div>
-                <button onClick={handleCloseAttempt} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#ffffff", padding: "6px 12px", cursor: "pointer", fontSize: "12px", borderRadius: "1px", transition: "border-color 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = "#C8960C"} onMouseLeave={(e) => e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"}>✕</button>
-              </div>
+<button onClick={handleCloseAttempt} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#ffffff", padding: "6px 12px", cursor: "pointer", fontSize: "12px", borderRadius: "1px", transition: "border-color 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = "#C8960C"} onMouseLeave={(e) => e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"}>✕</button>              </div>
 
               <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
                 {[1, 2, 3].map(s => (
@@ -284,6 +307,13 @@ Registration compiled via Secure Admission playhead panel loops.`;
                   )}
                   
                 </AnimatePresence>
+              </div>
+
+              {/* ── SECURE DATA LOG PROTECTION DISCLAIMER FOOTNOTE ── */}
+              <div style={{ marginTop: "20px", paddingTop: "12px", borderTop: "1px solid rgba(255,255,255,0.05)", textAlign: "center" }}>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "11px", color: "rgba(255,255,255,0.3)", lineHeight: "1.4", margin: 0 }}>
+                  Submission strictly executes background database logging and opens an immediate WhatsApp dialogue window. Your metadata remains fully managed under standard security compliance protocols.
+                </p>
               </div>
 
             </motion.div>

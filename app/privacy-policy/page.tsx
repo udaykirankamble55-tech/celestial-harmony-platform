@@ -1,26 +1,35 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import Link from "next/link";
 
 const CURSOR_NOTATIONS = [
   { char: "𝄞", accidental: "" },
   { char: "♪", accidental: "" },
-  { char: "♫", accidental: "♯" },
+  { char: "♫", accidental: "♯" }, 
   { char: "♩", accidental: "" },
   { char: "♬", accidental: "" },
-  { char: "♪", accidental: "♭" },
-  { char: "♫", accidental: "" },
-  { char: "♬", accidental: "" },
-  { char: "♩", accidental: "" },
-  { char: "♬", accidental: "" }
+  { char: "♪", accidental: "♭" }  
 ];
 
 function LocalCustomCursor() {
   const leaderRef = useRef<HTMLDivElement>(null);
   const dotsContainerRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
 
   useEffect(() => {
+    const checkDevice = () => {
+      const mobileOrTouch = window.innerWidth < 1024 || window.matchMedia("(hover: none)").matches;
+      setIsMobile(mobileOrTouch);
+    };
+    checkDevice();
+    window.addEventListener("resize", checkDevice);
+    return () => window.removeEventListener("resize", checkDevice);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile === true || isMobile === null) return;
+
     const leader = leaderRef.current;
     const container = dotsContainerRef.current;
     if (!leader || !container) return;
@@ -28,12 +37,14 @@ function LocalCustomCursor() {
     const totalDots = CURSOR_NOTATIONS.length;
     const dots: HTMLDivElement[] = [];
     
+    const HISTORY_GAP = 5;      
+    const START_OFFSET = 4;     
+    const MAX_HISTORY = (totalDots * HISTORY_GAP) + START_OFFSET + 5;
+    
     for (let i = 0; i < totalDots; i++) {
       const item = CURSOR_NOTATIONS[i];
       const dot = document.createElement('div');
-      dot.innerText = item.char;
-      
-      const calculatedFontSize = `${24 - (i * 0.45)}px`;
+      const calculatedFontSize = `${22 - (i * 1.2)}px`;
 
       Object.assign(dot.style, {
         position: 'fixed',
@@ -47,15 +58,14 @@ function LocalCustomCursor() {
         color: '#C8960C',
         fontSize: calculatedFontSize, 
         pointerEvents: 'none',
-        zIndex: '9998',
+        zIndex: '9999998',
         willChange: 'transform',
         lineHeight: '1',
         whiteSpace: 'nowrap',
         margin: '0',
         padding: '0',
-        textShadow: "0 0 3px #C8960C, 0 0 8px rgba(232, 184, 75, 0.85), 0 0 1px #856408",
-        animation: `shimmerGlitter 2s ease-in-out infinite`,
-        animationDelay: `${i * 0.15}s`
+        textShadow: "0 0 4px #C8960C, 0 0 10px rgba(232, 184, 75, 0.85), 0 0 1px #856408",
+        transform: 'translate3d(0,0,0)'
       });
 
       dot.innerHTML = `
@@ -64,33 +74,30 @@ function LocalCustomCursor() {
           ${item.accidental ? `
             <span style="
               position: absolute;
-              top: -0.25em;
-              right: -0.45em;
+              top: -0.22em;
+              right: -0.42em;
               font-size: 0.58em;
               font-family: sans-serif;
               font-weight: 700;
-              color: #FFFFFF;
-              text-shadow: 0 0 3px #C8960C, 0 0 6px rgba(255,255,255,0.8);
+              color: #FFECA0;
+              text-shadow: 0 0 3px #C8960C, 0 0 8px rgba(232, 184, 75, 0.9);
             ">${item.accidental}</span>
           ` : ''}
         </span>
       `;
-
       container.appendChild(dot);
       dots.push(dot);
     }
 
     const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     const leaderPos = { x: mouse.x, y: mouse.y };
-    const dotPositions = Array.from({ length: totalDots }, () => ({ x: mouse.x, y: mouse.y }));
     
     let lastMouseX = mouse.x;
     let lastMouseY = mouse.y;
-    let lastScrollY = window.scrollY;
-    
-    let smoothScrollInertia = 0;
-    let globalVelocity = 0;
+    let idleProgress = 0; 
     let idleTime = 0;
+
+    const coordsHistory = Array.from({ length: MAX_HISTORY }, () => ({ x: mouse.x, y: mouse.y }));
 
     const handleMouseMove = (e: MouseEvent) => {
       mouse.x = e.clientX;
@@ -100,9 +107,9 @@ function LocalCustomCursor() {
     const handleMouseOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (target && (target.closest('a') || target.closest('button') || target.closest('input') || target.closest('textarea') || target.closest('select') || target.closest('[role="button"]'))) {
-        gsap.to(leader, { scale: 1.5, duration: 0.25, ease: "power2.out" });
+        gsap.to(leader, { scale: 1.4, duration: 0.15, ease: "power1.out" });
       } else {
-        gsap.to(leader, { scale: 1, duration: 0.25, ease: "power2.out" });
+        gsap.to(leader, { scale: 1, duration: 0.15, ease: "power1.out" });
       }
     };
 
@@ -110,77 +117,44 @@ function LocalCustomCursor() {
     window.addEventListener('mouseover', handleMouseOver);
 
     const ticker = gsap.ticker.add(() => {
-      const currentScrollY = window.scrollY;
-      const scrollDeltaY = currentScrollY - lastScrollY;
-      lastScrollY = currentScrollY;
-
-      smoothScrollInertia += (scrollDeltaY - smoothScrollInertia) * 0.05;
-
-      const dx = mouse.x - lastMouseX;
-      const dy = mouse.y - lastMouseY;
+      const movementX = Math.abs(mouse.x - lastMouseX);
+      const movementY = Math.abs(mouse.y - lastMouseY);
       
-      const effectiveMoveDistance = Math.sqrt(dx * dx + (dy + scrollDeltaY) * (dy + scrollDeltaY));
-      globalVelocity += (effectiveMoveDistance - globalVelocity) * 0.1;
-      
-      lastMouseX = mouse.x; 
+      lastMouseX = mouse.x;
       lastMouseY = mouse.y;
 
-      leaderPos.x += (mouse.x - leaderPos.x) * 0.55;
-      leaderPos.y += (mouse.y - leaderPos.y) * 0.55;
-      gsap.set(leader, { x: leaderPos.x, y: leaderPos.y });
-
-      idleTime += 0.05;
-
-      if (Math.abs(smoothScrollInertia) > 0.01) {
-        dotPositions.forEach((pos, i) => {
-          pos.y -= smoothScrollInertia * 0.22 * (1.0 - i * 0.03);
-        });
+      if (movementX < 0.2 && movementY < 0.2) {
+        idleProgress += (1 - idleProgress) * 0.05; 
+      } else {
+        idleProgress += (0 - idleProgress) * 0.2;  
       }
 
-      let prevX = leaderPos.x;
-      let prevY = leaderPos.y;
+      idleTime += 0.03;
 
-      const totalSystemKineticEnergy = globalVelocity + Math.abs(smoothScrollInertia);
-      const glidePathBlendFactor = Math.max(0, Math.min(1, (totalSystemKineticEnergy - 0.4) / 2.5));
+      leaderPos.x += (mouse.x - leaderPos.x) * 0.92;
+      leaderPos.y += (mouse.y - leaderPos.y) * 0.92;
+      
+      leader.style.transform = `translate3d(${leaderPos.x}px, ${leaderPos.y}px, 0) translate(-50%, -50%)`;
 
-      dotPositions.forEach((pos, i) => {
-        const fixedSpacingDistance = i === 0 ? 22 : 26; 
+      coordsHistory.unshift({ x: leaderPos.x, y: leaderPos.y });
+      if (coordsHistory.length > MAX_HISTORY) {
+        coordsHistory.pop();
+      }
 
-        let targetX = prevX;
-        let targetY = prevY + fixedSpacingDistance;
-
-        const vX = pos.x - prevX;
-        const vY = pos.y - prevY;
-        const currentLinkDistance = Math.sqrt(vX * vX + vY * vY) || 1;
-
-        if (glidePathBlendFactor > 0) {
-          const kineticTargetX = prevX + (vX / currentLinkDistance) * fixedSpacingDistance;
-          const kineticTargetY = prevY + (vY / currentLinkDistance) * fixedSpacingDistance;
-
-          targetX = gsap.utils.interpolate(targetX, kineticTargetX, glidePathBlendFactor);
-          targetY = gsap.utils.interpolate(targetY, kineticTargetY, glidePathBlendFactor);
-        }
+      for (let i = 0; i < totalDots; i++) {
+        const historyIndex = START_OFFSET + (i * HISTORY_GAP);
+        const point = coordsHistory[historyIndex] || leaderPos;
         
-        const followSpeed = 0.52 - (i * 0.016); 
-        const smoothEase = Math.max(0.28, followSpeed);
+        const headGap = 18 * idleProgress;
+        const fanOutY = headGap + (i * 22 * idleProgress); 
         
-        pos.x += (targetX - pos.x) * smoothEase;
-        pos.y += (targetY - pos.y) * smoothEase;
+        const floatingSwayX = Math.sin(idleTime + i * 0.5) * 4 * idleProgress;
         
-        const sideSway = (glidePathBlendFactor > 0.3) ? 0 : Math.sin(idleTime * 1.8 + i * 0.4) * 1.5;
-        const breathingScale = (glidePathBlendFactor > 0.3) ? 1 : 1 + Math.sin(idleTime * 2 + i) * 0.04;
+        const finalX = point.x + floatingSwayX;
+        const finalY = point.y + fanOutY;
 
-        gsap.set(dots[i], { 
-          x: pos.x + sideSway, 
-          y: pos.y,
-          xPercent: -50,
-          yPercent: -50,
-          scale: breathingScale
-        });
-        
-        prevX = pos.x;
-        prevY = pos.y;
-      });
+        dots[i].style.transform = `translate3d(${finalX}px, ${finalY}px, 0) translate(-50%, -50%)`;
+      }
     });
 
     return () => {
@@ -189,7 +163,9 @@ function LocalCustomCursor() {
       gsap.ticker.remove(ticker);
       container.innerHTML = '';
     };
-  }, []);
+  }, [isMobile]);
+
+  if (isMobile) return null;
 
   return (
     <>
@@ -197,39 +173,28 @@ function LocalCustomCursor() {
         html, body, a, button, input, textarea, select, iframe, [role="button"], .clickable { 
           cursor: none !important; 
         }
-        .custom-cursor-el { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9999; will-change: transform; }
+        .custom-cursor-el { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9999999; will-change: transform; }
         .cursor-head { 
-          width: 12px; height: 12px; 
-          background: radial-gradient(circle, #FFFFFF 0%, #C8960C 70%, #614906 100%); 
+          width: 10px; height: 10px; 
+          background: #FFFFFF;
+          border: 1px solid #C8960C;
           border-radius: 50% !important; 
-          box-shadow: 0 0 12px #C8960C, 0 0 4px rgba(200,150,12,0.8); 
-          margin-left: -6px; margin-top: -6px; 
-        }
-        @keyframes shimmerGlitter {
-          0%, 100% {
-            filter: drop-shadow(0 0 2px #C8960C) drop-shadow(0 0 3px rgba(255,215,0,0.25));
-            color: #C8960C;
-          }
-          50% {
-            filter: drop-shadow(0 0 3px rgba(255,255,255,0.9)) drop-shadow(0 0 8px #C8960C) drop-shadow(0 0 12px rgba(232,184,75,0.85));
-            color: #FFECA0;
-          }
+          box-shadow: 0 0 8px #C8960C; 
+          transform: translate3d(0,0,0);
         }
       `}} />
       <div ref={leaderRef} className="custom-cursor-el cursor-head" />
-      <div ref={dotsContainerRef} style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 9998 }} />
+      <div ref={dotsContainerRef} style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 9999998 }} />
     </>
   );
 }
 
 export default function PrivacyPolicyPage() {
   return (
-    // FIX: Reduced top layout bounds margin from 160px down to a beautiful, balanced 100px
     <main style={{ background: "#080808", color: "#ffffff", minHeight: "100vh", padding: "100px 40px 100px", position: "relative" }}>
       <LocalCustomCursor />
 
       <div style={{ maxWidth: "800px", margin: "0 auto", fontFamily: "'DM Sans', sans-serif" }}>
-        
         <p style={{ color: "#C8960C", fontSize: "10px", letterSpacing: "0.25em", textTransform: "uppercase", fontWeight: 600, marginBottom: "12px" }}>
           Legal Framework &amp; Compliance
         </p>
@@ -241,7 +206,6 @@ export default function PrivacyPolicyPage() {
         <p style={{ color: "rgba(245,240,232,0.4)", fontSize: "13px", marginBottom: "48px" }}>Last Updated: June 2026</p>
         
         <div style={{ display: "flex", flexDirection: "column", gap: "40px", lineHeight: "1.8", color: "rgba(245,240,232,0.65)", fontSize: "14.5px", textAlign: "justify" }}>
-          
           <section>
             <h2 style={{ color: "#ffffff", fontSize: "19px", fontFamily: "'DM Serif Display', serif", fontWeight: 400, marginBottom: "14px", letterSpacing: "0.01em" }}>1. Information We Collect</h2>
             <p style={{ marginBottom: "12px" }}>
@@ -274,7 +238,6 @@ export default function PrivacyPolicyPage() {
             <h2 style={{ color: "#ffffff", fontSize: "19px", fontFamily: "'DM Serif Display', serif", fontWeight: 400, marginBottom: "14px", letterSpacing: "0.01em" }}>4. Retention Thresholds and Security Controls</h2>
             <p>Personal profile parameters are stored securely inside insulated environments only as long as necessary to fulfill active educational enrollments or compliance audits. Data records are protected in transit using Secure Sockets Layer (SSL) encryption frameworks to eliminate intercept vectors along the public network pipeline.</p>
           </section>
-
         </div>
 
         <div style={{ marginTop: "60px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "32px" }}>
@@ -282,7 +245,6 @@ export default function PrivacyPolicyPage() {
             {"← Return to Home"}
           </Link>
         </div>
-
       </div>
     </main>
   );

@@ -29,10 +29,11 @@ export default function HeroVideo() {
       {/* Stable Hardware-Accelerated Continuous Video Loop */}
       <video
         autoPlay
-        muted
         loop
         playsInline
+        webkit-playsinline="true" // Crucial fix for older iOS and inline webview compatibility
         preload="auto"
+        muted={true} // Safe fallback for aggressive mobile browser power management loops
         style={{
           width: "100%",
           height: "100%",
@@ -41,7 +42,8 @@ export default function HeroVideo() {
           transform: "translate3d(0,0,0)",
           backfaceVisibility: "hidden",
           WebkitBackfaceVisibility: "hidden",
-          willChange: "transform"
+          willChange: "transform",
+          pointerEvents: "none" 
         }}
       >
         <source src="/assets/hero-ambient-loop.mp4" type="video/mp4" />

@@ -102,6 +102,79 @@ function useInView(ref: React.RefObject<Element | null>, options: { once?: boole
   return isInView;
 }
 
+/* ── Programmatic High-Performance Script-Driven Glow Card Container ── */
+function ProgrammaticGlowCard({ children, className = "", onStateChange }: { children: React.ReactNode; className?: string; onStateChange?: (hovering: boolean) => void; }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const beamRef = useRef<HTMLDivElement>(null);
+  const tweenRef = useRef<gsap.core.Tween | null>(null);
+  const isTouch = useTouchDeviceGuard();
+
+  useEffect(() => {
+    if (isTouch || !beamRef.current) return;
+    // Instantiate a highly optimized passive rotating reference loop via hardware transform tracks
+    tweenRef.current = gsap.to(beamRef.current, {
+      rotation: 360,
+      duration: 2.8,
+      ease: "none",
+      repeat: -1,
+      paused: true
+    });
+    return () => { if (tweenRef.current) tweenRef.current.kill(); };
+  }, [isTouch]);
+
+  const handleMouseEnter = () => {
+    if (onStateChange) onStateChange(true);
+    if (isTouch) return;
+    if (tweenRef.current) tweenRef.current.play();
+    gsap.to(beamRef.current, { opacity: 1, duration: 0.3 });
+  };
+
+  const handleMouseLeave = () => {
+    if (onStateChange) onStateChange(false);
+    if (isTouch) return;
+    if (tweenRef.current) tweenRef.current.pause();
+    gsap.to(beamRef.current, { opacity: 0, duration: 0.3 });
+  };
+
+  return (
+    <div 
+      ref={containerRef}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className={className}
+      style={{
+        position: "relative",
+        padding: "1.5px",
+        background: isTouch ? "rgba(200, 150, 12, 0.3)" : "rgba(255,255,255,0.06)",
+        borderRadius: "4px",
+        overflow: "hidden"
+      }}
+    >
+      {/* Moving active canvas layer element */}
+      {!isTouch && (
+        <div 
+          ref={beamRef}
+          style={{
+            position: "absolute",
+            top: "-60%",
+            left: "-60%",
+            width: "220%",
+            height: "220%",
+            background: "conic-gradient(from 0deg, transparent 65%, #C8960C 80%, #FFFFFF 92%, #C8960C 100%)",
+            opacity: 0,
+            zIndex: 1,
+            pointerEvents: "none",
+            willChange: "transform"
+          }}
+        />
+      )}
+      <div style={{ position: "relative", zIndex: 2, background: "#0a0c0f", height: "100%", borderRadius: "3px" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function TiltCard({ children, style, className = "", maxTilt = 10, maxMove = 8 }: { children: React.ReactNode; style?: React.CSSProperties; className?: string; maxTilt?: number; maxMove?: number; }) {
   const ref = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -128,7 +201,6 @@ function TiltCard({ children, style, className = "", maxTilt = 10, maxMove = 8 }
   }, [maxTilt, maxMove, isTouchDevice]);
   return (
     <div ref={ref} className={`tilt-beam-card ${isHovered && !isTouchDevice ? "is-hovered" : ""} ${className}`} style={{ position: "relative", transformStyle: isTouchDevice ? "flat" : "preserve-3d", willChange: "transform", ...style }}>
-      <div className="tilt-gradient-spin"></div>
       <div className="tilt-inner-bg" style={{ position: "relative", zIndex: 2, background: "#0a0c0f", height: "100%", borderRadius: "1px" }}>
         {children}
       </div>
@@ -151,16 +223,18 @@ function AboutUspStripCard({ item, i, activeIndex, setActiveIndex, mobileActiveI
   const isMobileActive = mobileActiveIndex === i && isTouchDevice;
   const isCardActive = isTouchDevice ? isMobileActive : isHovered;
   return (
-    <div onMouseEnter={() => !isTouchDevice && setActiveIndex(i)} onMouseLeave={() => !isTouchDevice && setActiveIndex(null)} onClick={(e) => { if (isTouchDevice) { e.preventDefault(); e.stopPropagation(); setMobileActiveIndex(mobileActiveIndex === i ? null : i); } }} className={`contact-premium-card about-strip-item-node ${isCardActive ? "is-hovering" : ""}`} style={{ padding: "1.5px", display: "flex", flexDirection: "column", borderRadius: "4px", position: "relative", flex: isCardActive ? 1.38 : 1, zIndex: isCardActive ? 10 : 1, transition: "flex 0.48s cubic-bezier(0.25, 1, 0.32, 1), border-color 0.4s ease, box-shadow 0.4s ease" }} >
-      <div className="contact-beam-spin"></div>
-      <div style={{ position: "relative", zIndex: 2, display: "flex", gap: "clamp(14px, 2.5vw, 20px)", alignItems: "center", background: "#0a0c0f", padding: "14px 24px", borderRadius: "3px", height: "100%" }}>
+    <ProgrammaticGlowCard className="about-strip-item-node" onStateChange={(hov) => setActiveIndex(hov ? i : null)}>
+      <div 
+        onClick={(e) => { if (isTouchDevice) { e.preventDefault(); e.stopPropagation(); setMobileActiveIndex(mobileActiveIndex === i ? null : i); } }} 
+        style={{ display: "flex", gap: "clamp(14px, 2.5vw, 20px)", alignItems: "center", background: "#0a0c0f", padding: "14px 24px", borderRadius: "3px", height: "100%", cursor: isTouchDevice ? "pointer" : "default" }}
+      >
         <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: isCardActive ? "1.65rem" : "1.35rem", color: isCardActive ? "#C8960C" : "rgba(200,150,12,0.4)", fontStyle: "italic", lineHeight: 1, flexShrink: 0, transition: "color 0.3s ease, font-size 0.3s ease", minWidth: 30 }}>{item.n}</span>
         <div>
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11.5, letterSpacing: ".14em", textTransform: "uppercase", fontWeight: 700, color: isCardActive ? "#ffffff" : "rgba(245,240,232,0.85)", marginBottom: 3, transition: "color 0.3s ease" }}>{item.title}</p>
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13px", color: isCardActive ? "rgba(245,240,232,0.7)" : "rgba(245,240,232,0.48)", lineHeight: 1.6, margin: 0, transition: "color 0.3s ease" }}>{item.body}</p>
         </div>
       </div>
-    </div>
+    </ProgrammaticGlowCard>
   );
 }
 
@@ -168,8 +242,7 @@ function FounderCard() {
   const [imgHov, setImgHov] = useState(false);
   const isTouchDevice = useTouchDeviceGuard();
   return (
-    <div onMouseEnter={() => !isTouchDevice && setImgHov(true)} onMouseLeave={() => !isTouchDevice && setImgHov(false)} className={`contact-premium-card ${imgHov && !isTouchDevice ? "is-hovering" : ""}`} style={{ padding: "1.5px", background: "rgba(255,255,255,0.06)", borderRadius: "4px", position: "relative", transition: "box-shadow 0.4s ease" }}>
-      <div className="contact-beam-spin"></div>
+    <ProgrammaticGlowCard onStateChange={(hov) => setImgHov(hov)}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.15fr", alignContent: "stretch", overflow: "hidden", borderRadius: "3px", background: "#0a0c0f", width: "100%" }} className="founder-full-card">
         <div className="founder-card-image-wrapper" style={{ position: "relative", width: "100%", height: "100%", minHeight: "520px", overflow: "hidden", zIndex: 1 }}>
           <Image src="/founder.jpeg" alt="Johnson Medi — Founder" fill priority sizes="(max-width: 768px) 100vw, 50vw" style={{ objectFit: "cover", transform: imgHov && !isTouchDevice ? "scale(1.02)" : "scale(1)", transition: "transform 0.6s ease, filter 0.6s ease", filter: imgHov && !isTouchDevice ? "brightness(0.95)" : "brightness(0.72)" }} />
@@ -177,7 +250,6 @@ function FounderCard() {
         <div style={{ padding: "48px clamp(24px, 4vw, 48px) 40px clamp(24px, 4vw, 48px)", background: "#0a0c0f", display: "flex", flexDirection: "column", justifyContent: "space-between", zIndex: 1 }} className="founder-card-text-panel">
           <div>
             <div style={{ marginBottom: 4 }}>
-              {/* ── ADDED CHOP PROTECTION LAYER LABEL CLASS ── */}
               <MLine delay={0} style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(2.4rem, 4.2vw, 3.8rem)", fontWeight: 400, color: "#ffffff", lineHeight: 1.1 }} className="founder-name-mask">
                 Johnson Medi
               </MLine>
@@ -198,21 +270,18 @@ function FounderCard() {
           </div>
         </div>
       </div>
-    </div>
+    </ProgrammaticGlowCard>
   );
 }
 
 export default function AboutSection() {
-  const [locHover, setLocHover] = useState(false);
   const [activeUspIndex, setActiveUspIndex] = useState<number | null>(null);
   const [mobileActiveUsp, setMobileActiveUsp] = useState<number | null>(null);
   const [isParagraphExpanded, setIsParagraphExpanded] = useState(false);
   const isTouchDevice = useTouchDeviceGuard();
 
-  // Option 3 Click Engine: Fires background logging row and opens customized greeting
   const handleAboutWhatsAppClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-
     const professionalPreFillText = 
 `Greetings Celestial Harmony Academy! 
 
@@ -220,9 +289,8 @@ I was reviewing your school details in the academy profile panel and would love 
 
 Could you kindly share the optimal path to connect with the director to discuss enrollment details and clarify current testing schedules? Thank you!`;
 
-    // Safe immediate redirect layout link target
     const targetChatLink = `https://wa.me/919885297005?text=${encodeURIComponent(professionalPreFillText)}`;
-    const popupFrameRef = window.open(targetChatLink, "_blank");
+    window.open(targetChatLink, "_blank");
 
     try {
       await fetch("/api/enroll", {
@@ -246,54 +314,32 @@ Could you kindly share the optimal path to connect with the director to discuss 
     <section id="about" className="about-master-global-section" onClick={() => isTouchDevice && setMobileActiveUsp(null)} style={{ position: "relative", background: "#080808", padding: "clamp(60px, 8vw, 120px) 0", overflow: "hidden" }}>
       
       <style dangerouslySetInnerHTML={{ __html: `
-        .contact-premium-card { border-radius: 4px; position: relative; padding: 1.5px; background: rgba(255,255,255,0.06); transition: border-color 0.4s ease, box-shadow 0.4s ease; }
-        .contact-beam-spin { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; z-index: -1; }
-        .contact-beam-spin::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: transparent; }
-        
-        .contact-premium-card.is-hovering .contact-beam-spin::before { background: conic-gradient(from 0deg, transparent 70%, #C8960C 85%, #FFFFFF 95%, #C8960C 100%); animation: spinGlowAbout 3s linear infinite; }
-        .contact-premium-card.is-hovering { border-color: transparent !important; background: transparent; box-shadow: 0 12px 32px rgba(200, 150, 12, 0.15) !important; }
-        .tilt-beam-card.is-hovered .tilt-gradient-spin::before { background: conic-gradient(from 0deg, transparent 70%, #C8960C 85%, #FFFFFF 95%, #C8960C 100%); animation: spinGlowAbout 3s linear infinite; }
-        .tilt-beam-card.is-hovered { border-color: transparent !important; background: transparent; box-shadow: 0 12px 32px rgba(200, 150, 12, 0.15) !important; }
+        .about-cta-beam { position: relative; overflow: hidden; background: transparent; border: 1px solid rgba(200, 150, 12, 0.5); color: white; padding: 16px 36px; font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; line-height: 1; cursor: pointer; transition: border-color 0.4s ease, box-shadow 0.4s ease; white-space: nowrap; border-radius: 2px; }
+        .about-cta-inner { position: absolute; inset: 1px; background-image: linear-gradient(to right, #C8960C 50%, #080808 50%); background-size: 200% 100%; background-position: 100% 0; transition: background-position 0.4s cubic-bezier(0.25, 1, 0.5, 1); z-index: 1; border-radius: 1px; }
+        .about-cta-text { position: relative; z-index: 2; transition: color 0.4s ease; }
         
         @media (hover: hover) and (pointer: fine) {
-          .about-cta-beam:hover::before { opacity: 1; }
-          .about-cta-beam:hover { box-shadow: 0 12px 24px rgba(200, 150, 12, 0.08); border-color: transparent !important; }
           .about-cta-beam:hover .about-cta-inner { background-position: 0 0; }
           .about-cta-beam:hover .about-cta-text { color: #080808 !important; font-weight: 700; }
         }
-
-        .tilt-beam-card { border-radius: 2px; position: relative; padding: 2px; background: rgba(255, 255, 255, 0.08); z-index: 1; transition: border-color 0.4s ease, box-shadow 0.4s ease; }
-        .tilt-gradient-spin { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; z-index: -1; }
-        .tilt-gradient-spin::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: transparent; }
-        
-        .about-cta-beam { position: relative; overflow: hidden; background: transparent; border: 1px solid rgba(200, 150, 12, 0.4); color: white; padding: 16px 36px; font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; line-height: 1; cursor: pointer; transition: border-color 0.4s ease, box-shadow 0.4s ease; white-space: nowrap; border-radius: 2px; }
-        .about-cta-beam::before { content: ''; position: absolute; top: 50%; left: 50%; width: 300%; height: 300%; background: conic-gradient(from 0deg, transparent 60%, #C8960C 75%, #FFFFFF 85%, #C8960C 95%, transparent 100%); transform: translate(-50%, -50%) rotate(0deg); animation: spinGlowAbout 2.5s linear infinite; opacity: 0; transition: opacity 0.4s ease; z-index: 0; pointer-events: none; }
-        .about-cta-inner { position: absolute; inset: 1px; background-image: linear-gradient(to right, #C8960C 50%, #080808 50%); background-size: 200% 100%; background-position: 100% 0; transition: background-position 0.4s cubic-bezier(0.25, 1, 0.5, 1); z-index: 1; border-radius: 1px; }
-        .about-cta-text { position: relative; z-index: 2; transition: color 0.4s ease; }
         
         .about-cta-beam:active .about-cta-inner { background-position: 0 0 !important; }
         .about-cta-beam:active .about-cta-text { color: #080808 !important; font-weight: 700; }
 
+        .about-interactive-buttons-bar { display: flex; gap: 16px; margin-top: 24px; flex-wrap: wrap; align-items: center; }
         .stats-responsive-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: clamp(48px, 6vw, 80px); }
-
-        @keyframes spinGlowAbout { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
 
         @media (max-width: 1024px) { 
           .about-master-global-section { padding-bottom: 0px !important; }
-          
           .stats-responsive-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; } 
           .about-main-grid { grid-template-columns: 1fr !important; gap: 36px !important; }
-          
           .about-usp-accordion-stack-container { height: auto !important; gap: 14px !important; margin-bottom: 24px !important; }
-          .contact-premium-card { border: 1px solid rgba(200, 150, 12, 0.15) !important; background: #0a0c0f !important; box-shadow: none !important; }
-          .tilt-beam-card { border: 1px solid rgba(200, 150, 12, 0.15) !important; background: #0a0c0f !important; box-shadow: none !important; }
 
-          /* ── MOBILE PIN CARD STRUCTURE: Aligns data fields natively ── */
           .location-strip-grid { grid-template-columns: auto 1fr !important; gap: 16px !important; padding: 24px 20px !important; align-items: start !important; } 
           .location-strip-grid > svg { width: 18px !important; height: 22px !important; margin-top: 2px !important; }
           .hero-location-inner-stack { display: flex !important; flexDirection: column !important; gap: 4px !important; width: 100% !important; }
           
-          .location-strip-grid div:last-child { grid-column: span 2 !important; display: flex !important; flex-direction: column !important; align-items: stretch !important; margin-top: 16px !important; gap: 10px !important; width: 100% !important; } 
+          .location-strip-grid div:last-child { grid-column: span 2 !important; display: flex !important; flex-direction: column !important; align-items: stretch !important; margin-top: 16px !important; gap: 14px !important; width: 100% !important; } 
           .location-strip-grid div:last-child a { width: 100% !important; text-align: center !important; } 
         }
         
@@ -305,11 +351,7 @@ Could you kindly share the optimal path to connect with the director to discuss 
           .about-bio-body-text { font-size: 13.5px !important; line-height: 1.65 !important; color: rgba(255,255,255,0.5) !important; }
           .founder-metrics-flex-row { margin-top: 24px !important; }
 
-          /* ── SHIELD SYSTEM FOR THE CHOPPED HEADERS ON MOBILE SCREEN ── */
-          .founder-name-mask { padding-top: 4px !important; }
-          .founder-name-mask > div { font-size: 30px !important; line-height: 1.2 !important; }
-          
-          .about-interactive-buttons-bar { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; width: 100% !important; max-width: 290px !important; }
+          .about-interactive-buttons-bar { flex-direction: column !important; align-items: stretch !important; gap: 14px !important; width: 100% !important; }
           .about-cta-beam { width: 100% !important; display: flex !important; height: 48px !important; padding: 0 !important; }
         }
         @media (max-width: 520px) {
@@ -335,7 +377,7 @@ Could you kindly share the optimal path to connect with the director to discuss 
         {/* STATS GRID */}
         <ScrollReveal stagger={0.12} y={32} className="stats-responsive-grid">
           {STATS.map((s, i) => (
-            <div key={i} style={{ position: "relative", zIndex: 5, perspective: isTouchDevice ? "none" : "1000px" }}>
+            <div key={i} style={{ position: "relative", zIndex: 5 }}>
               <TiltCard maxTilt={10} maxMove={8} style={{ textAlign: "center", height: "100%" }}>
                 <div style={{ padding: "clamp(20px, 2.5vw, 32px) clamp(14px, 1.8vw, 24px)" }}>
                   <div style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(2rem, 3.5vw, 3.2rem)", fontWeight: 400, lineHeight: 1, background: "linear-gradient(135deg,#E8B84B 0%,#C8960C 100%)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>
@@ -408,7 +450,7 @@ Could you kindly share the optimal path to connect with the director to discuss 
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 14, marginTop: 24, flexWrap: "wrap" }} className="about-interactive-buttons-bar">
+            <div className="about-interactive-buttons-bar">
               <AboutCappedCTAButton href="tel:+919885297005">Call Now</AboutCappedCTAButton>
               <AboutCappedCTAButton href="#" onActionClick={handleAboutWhatsAppClick}>WhatsApp Us</AboutCappedCTAButton>
             </div>
@@ -437,13 +479,12 @@ Could you kindly share the optimal path to connect with the director to discuss 
           </ScrollReveal>
         </div>
 
-        {/* GEOLOCATION STRIP BAR */}
+        {/* GEOLOCATION STRIP BAR — With Continuous Tracking Programmatic Engine */}
         <ScrollReveal y={32}>
-          <div onMouseEnter={() => !isTouchDevice && setLocHover(true)} onMouseLeave={() => !isTouchDevice && setLocHover(false)} className={`contact-premium-card ${locHover && !isTouchDevice ? "is-hovering" : ""}`} style={{ padding: "1.5px", background: "rgba(255, 255, 255, 0.06)", borderRadius: "4px" }} >
-            <div className="contact-beam-spin"></div>
-            <div style={{ position: "relative", zIndex: 2, background: "#0a0c0f", padding: "clamp(24px, 3.5vw, 36px) clamp(24px, 4vw, 40px)", borderRadius: "3px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "24px", alignItems: "center", width: "100%" }} className="location-strip-grid">
+          <ProgrammaticGlowCard>
+            <div style={{ background: "#0a0c0f", padding: "clamp(24px, 3.5vw, 36px) clamp(24px, 4vw, 40px)", borderRadius: "3px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "24px", alignItems: "center", width: "100%" }} className="location-strip-grid">
               
-              <svg width="24" height="28" viewBox="0 0 18 22" fill="none" stroke="#C8960C" strokeWidth="1.2" style={{ flexShrink: 0 }}>
+              <svg width="24" height="28" viewBox="0 0 18 22" fill="none" stroke="#C8960C" strokeWidth="1.6" style={{ flexShrink: 0 }}>
                 <path d="M9 1C4.58 1 1 4.58 1 9c0 6.75 8 12 8 12s8-5.25 8-12c0-4.42-3.58-8-8-8z"/><circle cx="9" cy="9" r="2.5"/>
               </svg>
               
@@ -452,12 +493,12 @@ Could you kindly share the optimal path to connect with the director to discuss 
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "13.5px", color: "rgba(245,240,232,0.48)" }}>Phase 2, Near Vayuputra Towers, KPHB Colony, Hyderabad</p>
               </div>
 
-              <div>
+              <div style={{ position: "relative", zIndex: 10 }}>
                 <AboutCappedCTAButton href="http://maps.google.com/?q=Celestial+Harmony+Academy+of+Music+KPHB">Navigate Route</AboutCappedCTAButton>
               </div>
 
             </div>
-          </div>
+          </ProgrammaticGlowCard>
         </ScrollReveal>
 
       </div>

@@ -31,9 +31,9 @@ export default function HeroVideo() {
         autoPlay
         loop
         playsInline
-        webkit-playsinline="true" // Crucial fix for older iOS and inline webview compatibility
+        muted
+        disablePictureInPicture
         preload="auto"
-        muted={true} // Safe fallback for aggressive mobile browser power management loops
         style={{
           width: "100%",
           height: "100%",

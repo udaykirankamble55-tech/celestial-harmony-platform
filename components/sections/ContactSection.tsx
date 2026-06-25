@@ -279,12 +279,14 @@ Forwarded straight via General Contact Terminal Node.`;
     <section id="contact" onClick={() => isTouchDevice && setMobileActiveStrip(null)} style={{ position: "relative", background: "#080808", padding: "clamp(60px, 8vw, 120px) 0", overflow: "hidden" }}>
       
       <style dangerouslySetInnerHTML={{ __html: `
-        .contact-premium-card { border-radius: 4px; position: relative; padding: 1.5px; background: rgba(255,255,255,0.06); transition: border-color 0.4s ease; }
-        .contact-beam-spin { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; z-index: -1; }
-        .contact-beam-spin::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: transparent; }
+        /* Fixed Containment Borders — Enforces absolute scannability and clips rotation lines seamlessly */
+        .contact-premium-card { border-radius: 4px; position: relative; padding: 1.5px; background: rgba(255,255,255,0.06); transition: border-color 0.4s ease, box-shadow 0.4s ease; overflow: hidden; }
+        .contact-beam-spin { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; z-index: 1; pointer-events: none; }
+        .contact-beam-spin::before { content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: transparent; transform: rotate(0deg); will-change: transform; }
         
-        .contact-premium-card.is-hovering .contact-beam-spin::before { background: conic-gradient(from 0deg, transparent 70%, #C8960C 85%, #FFFFFF 95%, #C8960C 100%); animation: spinGlowContact 3s linear infinite; }
-        .contact-premium-card.is-hovering { border-color: transparent !important; background: transparent; box-shadow: none !important; }
+        /* Fixed Continuous Conic Rotation Trigger — Activates fluid movement on desktop hover */
+        .contact-premium-card.is-hovering .contact-beam-spin::before { background: conic-gradient(from 0deg, transparent 70%, #C8960C 85%, #FFFFFF 95%, #C8960C 100%); animation: spinGlowContact 2.8s linear infinite; }
+        .contact-premium-card.is-hovering { border-color: transparent !important; background: transparent; box-shadow: 0 10px 32px rgba(200, 150, 12, 0.12) !important; }
         .contact-premium-card.is-hovering .strip-icon-box { transform: scale(1.03); border-color: rgba(255,255,255,0.12); }
 
         @media (hover: hover) and (pointer: fine) {
@@ -306,6 +308,9 @@ Forwarded straight via General Contact Terminal Node.`;
         .contact-submit-engine:active .contact-btn-slider { background-position: 0 0 !important; }
         .contact-submit-engine:active .contact-btn-text-node { color: #080808 !important; }
 
+        /* Hardware-Accelerated Animation Loop Engine Definition */
+        @keyframes spinGlowContact { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
         @media (max-width: 1023px) { 
           .contact-split-row { grid-template-columns: 1fr !important; gap: 24px !important; } 
           .contact-premium-card { border: 1px solid rgba(200, 150, 12, 0.15) !important; background: #0a0c0f !important; box-shadow: none !important; }
@@ -316,23 +321,25 @@ Forwarded straight via General Contact Terminal Node.`;
 
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 clamp(20px, 4vw, 40px)", position: "relative", zIndex: 5 }}>
 
-        {/* HEADER ROW */}
+        {/* HEADER ROW — Untouched Mask Track Reveal Settings */}
         <motion.div variants={stag} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }} style={{ textAlign: "center", marginBottom: "clamp(36px, 5vw, 56px)" }}>
           <motion.p variants={up} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: ".3em", textTransform: "uppercase", color: "#C8960C", marginBottom: 12, fontWeight: 500 }}>
             004 — Get In Touch
           </motion.p>
-          <div style={{ fontFamily: "'DM Serif Display', serif", lineHeight: 1.05, marginBottom: 14 }}>
-            <motion.h2 variants={up} style={{ fontSize: "clamp(2.2rem, 4.5vw, 4.6rem)", fontWeight: 400, color: "#ffffff", margin: 0 }}>
+          
+          <h2 style={{ fontFamily: "'DM Serif Display', serif", lineHeight: 1.05, marginBottom: 14, margin: 0 }}>
+            <MLine delay={0} style={{ fontSize: "clamp(2.2rem, 4.5vw, 4.6rem)", fontWeight: 400, color: "#ffffff" }}>
               Begin Your <span style={{ fontStyle: "italic", background: "linear-gradient(135deg,#E8B84B,#C8960C)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>Journey.</span>
-            </motion.h2>
-          </div>
+            </MLine>
+          </h2>
+
           <motion.p variants={up} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "14.5px", color: "rgba(245,240,232,0.55)", maxWidth: "500px", margin: "0 auto", lineHeight: "1.7" }}>
             Fill in your details to open an immediate WhatsApp conversation — fast, fully personal, and entirely secure.
           </motion.p>
         </motion.div>
 
         {/* BALANCED EQUAL-HEIGHT LAYOUT GRID CANVAS */}
-        <div ref={gridContainerRef} style={{ display: "grid", gridTemplateColumns: "1.12fr 0.88fr", gap: "24px", alignItems: "stretch", marginBottom: "20px" }} className="contact-split-row">
+        <div style={{ display: "grid", gridTemplateColumns: "1.12fr 0.88fr", gap: "24px", alignItems: "stretch", marginBottom: "20px" }} className="contact-split-row">
           
           {/* LEFT PANEL: FORM INTERFACE */}
           <div style={{ display: "flex", flexDirection: "column" }}>

@@ -141,7 +141,6 @@ function CollageTile({
         <div className="wall-vignette" style={{ zIndex: 2 }} />
 
         {img.featured && (
-          // ── FIXED TYPE ASSIGNMENT: Restored ternary operator completely ──
           <div style={{ position: "absolute", bottom: 24, left: 24, zIndex: 3, right: 24, opacity: hov && !isTouchDevice ? 0.15 : 1, transition: "opacity 0.4s" }}>
             <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 8.5, fontWeight: 700, letterSpacing: "0.15em", color: "#C8960C", background: "rgba(8,8,8,0.85)", padding: "4px 10px", textTransform: "uppercase", borderRadius: "1px" }}>{img.label}</span>
             <h4 style={{ fontFamily: "'DM Serif Display', serif", fontSize: "clamp(1.2rem, 1.8vw, 1.5rem)", color: "#ffffff", margin: "6px 0 0 0", fontWeight: 400 }}>{img.title}</h4>
@@ -267,6 +266,8 @@ export default function TrinitySection() {
         .sk-card.is-hovered { border-color: transparent !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 12px rgba(200, 150, 12, 0.06) !important; }
         .sk-card.is-hovered::before { opacity: 1; animation-play-state: running; }
         
+        .gallery-responsive-maps-flex-bar { display: flex; gap: 16px; justify-content: center; margin-top: 32px; flex-wrap: wrap; width: 100%; }
+
         .trinity-maps-btn { 
           position: relative; overflow: hidden; background: transparent; border: 1px solid #ffffff; color: white; padding: 18px 0; font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; line-height: 1; cursor: pointer; transition: border-color 0.4s ease, box-shadow 0.4s ease; border-radius: 2px; text-decoration: none; width: 340px; max-width: 100%; text-align: center; will-change: transform; backface-visibility: hidden; -webkit-backface-visibility: hidden;
         }
@@ -316,7 +317,6 @@ export default function TrinitySection() {
         }
         
         @media (max-width: 1023px) { 
-          /* ── RESTORED SPACE: Replaced 0px block with beautiful padding properties to cushion the links ── */
           .gallery-section-global-root { padding-bottom: 60px !important; }
           .collage-frame-node { border: 1px solid rgba(200, 150, 12, 0.15) !important; } 
           
@@ -363,6 +363,7 @@ export default function TrinitySection() {
             if (isTouchDevice || !gridContainerRef.current) return;
             const rect = gridContainerRef.current.getBoundingClientRect();
             gridContainerRef.current.style.setProperty("--mouse-x", `${e.clientX - rect.left}px`);
+            /* ── BALANCED POSITIONAL SYNTAX: Safely mapped native e.clientY track ── */
             gridContainerRef.current.style.setProperty("--mouse-y", `${e.clientY - rect.top}px`);
           }}
           className={`art-wall-collage ${activeGutterIndex !== null && !isTouchDevice ? "fluid-active" : ""}`} 

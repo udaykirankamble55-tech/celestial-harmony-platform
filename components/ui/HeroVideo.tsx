@@ -1,12 +1,29 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function HeroVideo() {
   const [mounted, setMounted] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Programmatic hardware override track to smash browser autoplay restrictions
+  useEffect(() => {
+    if (mounted && videoRef.current) {
+      // Direct DOM overrides force the browser to read the track as silent media instantly
+      videoRef.current.muted = true;
+      videoRef.current.playsInline = true;
+      
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.warn("Autoplay engine layout loop was safely intercepted:", error);
+        });
+      }
+    }
+  }, [mounted]);
 
   if (!mounted) {
     return <div style={{ position: "absolute", inset: 0, background: "#080808" }} />;
@@ -28,10 +45,12 @@ export default function HeroVideo() {
       
       {/* Stable Hardware-Accelerated Continuous Video Loop */}
       <video
+        ref={videoRef}
         autoPlay
         loop
         playsInline
         muted
+        controls={false}
         disablePictureInPicture
         preload="auto"
         style={{

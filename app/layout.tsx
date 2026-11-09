@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     siteName: "Celestial Harmony Academy of Music",
     images: [
       {
-        url: "/og-image.png", // Updated to PNG
+        url: "/og-image.jpeg", // Updated to PNG
         width: 1200,
         height: 630,
         alt: "Celestial Harmony Academy Students, Certificates, and Examiner Showcase",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     title: "Celestial Harmony Academy of Music | KPHB, Hyderabad",
     description:
       "Trinity College London Validated Music Academy in KPHB Colony.",
-    images: ["/og-image.png"], // Updated to PNG
+    images: ["/og-image.jpeg"], // Updated to JPEG
   },
   verification: {
     google: "XbCTKrjlOAt-Sjk_Ved2F2Pwz2FFNKWwxx0dje7LNQ8",
@@ -61,7 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     "url": "https://celestialharmonyacademy.in",
     "logo": "https://celestialharmonyacademy.in/logo-upscaled-2048.png",
     "image": [
-      "https://celestialharmonyacademy.in/og-image.png",
+      "https://celestialharmonyacademy.in/og-image.jpeg",
       "https://celestialharmonyacademy.in/groupclick2.jpg",
       "https://celestialharmonyacademy.in/certificate3.jpeg",
       "https://celestialharmonyacademy.in/examiner2.jpeg"
